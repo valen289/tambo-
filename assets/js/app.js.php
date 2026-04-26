@@ -22,6 +22,41 @@ function cerrarEditarModal() {
     document.getElementById('formEditarInsumo').reset();
 }
 
+function confirmarEliminar() {
+    const insumoId = document.getElementById('editarInsumoId').value;
+    const nombreInsumo = document.getElementById('editarNombre').value;
+    
+    if (confirm(`¿Estás seguro de que deseas eliminar el insumo "${nombreInsumo}"? Esta acción no se puede deshacer.`)) {
+        eliminarInsumo(insumoId);
+    }
+}
+
+function eliminarInsumo(insumoId) {
+    fetch('api/actualizar_stock.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: new URLSearchParams({
+            accion: 'eliminar_insumo',
+            insumo_id: insumoId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Insumo eliminado correctamente');
+            cerrarEditarModal();
+            location.reload();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(() => {
+        alert('Error de red al eliminar el insumo.');
+    });
+}
+
 // Ajustar Ganado
 function ajustarGanado(cambio) {
     fetch('api/actualizar_ganado.php', {
@@ -73,6 +108,20 @@ if (formConsumo) {
     });
 }
 
+function abrirModalNuevoInsumo() {
+    const modal = document.getElementById('modalEditarInsumo');
+    const form = document.getElementById('formEditarInsumo');
+    
+    // Limpiar el formulario
+    form.reset();
+    document.getElementById('editarInsumoId').value = '';
+    document.getElementById('modalEditarTitulo').textContent = 'Nuevo Insumo';
+    document.getElementById('btnGuardarInsumo').textContent = 'Crear Insumo';
+    document.getElementById('btnEliminarInsumo').style.display = 'none';
+    
+    modal.style.display = 'flex';
+}
+
 function editarInsumo(id) {
     const modal = document.getElementById('modalEditarInsumo');
     const form = document.getElementById('formEditarInsumo');
@@ -102,6 +151,9 @@ function editarInsumo(id) {
         document.getElementById('editarStock').value = insumo.stock_actual;
         document.getElementById('editarMinimo').value = insumo.stock_minimo;
         document.getElementById('editarConsumo').value = insumo.consumo_promedio_diario;
+        document.getElementById('modalEditarTitulo').textContent = 'Editar Insumo';
+        document.getElementById('btnGuardarInsumo').textContent = 'Guardar';
+        document.getElementById('btnEliminarInsumo').style.display = 'block';
 
         modal.style.display = 'flex';
     })
@@ -117,6 +169,7 @@ if (formEditarInsumo) {
 
         const formData = new FormData(this);
         formData.append('accion', 'editar_insumo');
+        const insumoId = document.getElementById('editarInsumoId').value;
 
         fetch('api/actualizar_stock.php', {
             method: 'POST',
@@ -125,7 +178,8 @@ if (formEditarInsumo) {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                alert('Insumo actualizado correctamente');
+                const mensaje = insumoId ? 'Insumo actualizado correctamente' : 'Insumo creado correctamente';
+                alert(mensaje);
                 cerrarEditarModal();
                 location.reload();
             } else {
@@ -133,7 +187,7 @@ if (formEditarInsumo) {
             }
         })
         .catch(() => {
-            alert('Error de red al actualizar el insumo.');
+            alert('Error de red al guardar el insumo.');
         });
     });
 }

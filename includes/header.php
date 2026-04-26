@@ -1,6 +1,6 @@
 <header>
     <div class="header-left">
-        <h1> Gestión de Tambo Pro</h1>
+        <h1> SiCoDiEt </h1>
     </div>
     <div class="header-right">
         <span><?php echo htmlspecialchars($_SESSION['nombre']); ?></span>

@@ -47,7 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestión de Tambo Pro - Registro</title>
+    <title>SiCoDiEt - Registro</title>
     <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
@@ -56,7 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="login-box">
 
                 <div class="logo">
-                    <h2>Gestión de Tambo Pro</h2>
+                    <h2>SiCoDiEt</h2>
                     <p>Crear nueva cuenta</p>
                 </div>
 

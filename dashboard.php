@@ -3,23 +3,6 @@ require_once 'includes/db.php';
 require_once 'includes/auth.php';
 verificarSesion();
 
-// Obtener últimas actualizaciones de consumo/stock
-$actualizaciones = $conn->query(
-    "SELECT cd.*, COALESCE(cd.tipo_movimiento, 'consumo') AS tipo_movimiento, i.unidad, i.nombre AS insumo_nombre, u.nombre AS usuario_nombre
-     FROM consumo_diario cd
-     LEFT JOIN insumos i ON cd.insumo_id = i.id
-     LEFT JOIN usuarios u ON cd.usuario_id = u.id
-     ORDER BY cd.fecha DESC, cd.hora DESC
-     LIMIT 6"
-);
-
-$lista_actualizaciones = [];
-while ($actualizacion = $actualizaciones->fetch_assoc()) {
-    $lista_actualizaciones[] = $actualizacion;
-}
-
-$total_actualizaciones = count($lista_actualizaciones);
-
 // Obtener insumos con alertas
 $insumos = $conn->query("
     SELECT i.*, 
@@ -55,58 +38,20 @@ while ($insumo = $insumos->fetch_assoc()) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Gestión de Tambo Pro</title>
+    <title>Dashboard - SiCoDiEt</title>
     <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
     <?php include 'includes/header.php'; ?>
     
     <div class="container">
-        <!-- Últimas Actualizaciones -->
-        <div class="card actualizaciones-card">
+        <div class="card">
             <div class="card-header">
-                <h3>Últimas Actualizaciones</h3>
+                <h2>Últimas Actualizaciones</h2>
             </div>
             <div class="card-body">
-                <p>Total de actualizaciones recientes: <strong><?php echo $total_actualizaciones; ?></strong></p>
-
-                <?php if ($total_actualizaciones === 0): ?>
-                    <p>No hay actualizaciones registradas aún.</p>
-                <?php else: ?>
-                    <ul class="lista-actualizaciones">
-                        <?php foreach ($lista_actualizaciones as $actualizacion): ?>
-                            <?php
-                                $tipo = $actualizacion['tipo_movimiento'];
-                                $unidad = htmlspecialchars($actualizacion['unidad'] ?? '');
-                                $insumoNombre = htmlspecialchars($actualizacion['insumo_nombre'] ?? 'Insumo');
-                                $usuarioNombre = htmlspecialchars($actualizacion['usuario_nombre'] ?? 'Usuario');
-                                $cantidad = number_format($actualizacion['cantidad'], 2, ',', '.');
-                                $fechaHora = date('d/m/Y H:i', strtotime($actualizacion['fecha'] . ' ' . $actualizacion['hora']));
-                                $signo = in_array($tipo, ['ingreso', 'ajuste_positivo']) ? '+' : '-';
-                                if ($tipo === 'ingreso') {
-                                    $tipoLabel = 'Ingreso';
-                                } elseif ($tipo === 'ajuste_positivo') {
-                                    $tipoLabel = 'Ajuste positivo';
-                                } elseif ($tipo === 'ajuste_negativo') {
-                                    $tipoLabel = 'Ajuste negativo';
-                                } else {
-                                    $tipoLabel = 'Consumo';
-                                }
-                            ?>
-                            <li class="item-actualizacion">
-                                <div class="actualizacion-top">
-                                    <span class="actualizacion-tipo"><?php echo $tipoLabel; ?></span>
-                                    <span class="actualizacion-cantidad"><?php echo $signo . $cantidad; ?> <?php echo $unidad; ?></span>
-                                </div>
-                                <div class="actualizacion-detalle">
-                                    <span><?php echo $insumoNombre; ?></span>
-                                    <span><?php echo $fechaHora; ?></span>
-                                    <span><?php echo $usuarioNombre; ?></span>
-                                </div>
-                            </li>
-                        <?php endforeach; ?>
-                    </ul>
-                <?php endif; ?>
+                <p>Ve todas las actualizaciones y observaciones en un apartado separado.</p>
+                <a href="actualizaciones.php" class="btn btn-primary">Ir a Últimas Actualizaciones</a>
             </div>
         </div>
 
@@ -121,15 +66,15 @@ while ($insumo = $insumos->fetch_assoc()) {
                 <?php if (esOperario()): ?>
                     <p>Esta es tu sección de operario. Aquí puedes registrar consumos y ver el stock disponible.</p>
                 <?php elseif (esUsuario()): ?>
-                    <p>Esta es tu sección de usuario. Aquí puedes ver el stock y registrar movimientos según tu rol.</p>
+                    <p>Esta es tu sección de usuario administrativo. Aquí puedes gestionar y editar insumos.</p>
                 <?php else: ?>
                     <p>Esta es tu sección administrativa. Desde aquí puedes gestionar insumos, usuarios y ajustes.</p>
                 <?php endif; ?>
             </div>
         </div>
 
-        <?php if (esAdmin()): ?>
-        <!-- Añadir Nuevo Insumo (Solo Admin) -->
+        <?php if (esUsuario() || esAdmin()): ?>
+        <!-- Añadir Nuevo Insumo (Solo Usuario administrativo o Admin) -->
         <div class="card">
             <h3>Añadir Nuevo Insumo</h3>
             <form id="formInsumo" class="form-grid">
@@ -145,7 +90,12 @@ while ($insumo = $insumos->fetch_assoc()) {
         <?php endif; ?>
 
         <!-- Control de Stock -->
-        <h2>Control de Stock de Insumos</h2>
+        <div class="section-header">
+            <h2>Control de Stock de Insumos</h2>
+            <?php if (esUsuario() || esAdmin()): ?>
+                <button class="btn btn-primary" onclick="abrirModalNuevoInsumo()">+ Agregar Nuevo Insumo</button>
+            <?php endif; ?>
+        </div>
         <div class="grid-insumos">
             <?php foreach ($lista_insumos as $insumo): ?>
             <div class="card insumo-card estado-<?php echo $insumo['estado_alerta']; ?>">
@@ -154,7 +104,7 @@ while ($insumo = $insumos->fetch_assoc()) {
                         <h3><?php echo htmlspecialchars($insumo['nombre']); ?></h3>
                         <small>Capacidad: <?php echo number_format($insumo['capacidad_maxima'], 0, ',', '.'); ?> <?php echo $insumo['unidad']; ?></small>
                     </div>
-                    <?php if (esOperario()): ?>
+                    <?php if (esUsuario() || esAdmin()): ?>
                         <button class="btn-icon-edit" onclick="editarInsumo(<?php echo $insumo['id']; ?>)">Editar</button>
                     <?php endif; ?>
                 </div>
@@ -218,10 +168,10 @@ while ($insumo = $insumos->fetch_assoc()) {
         </div>
     </div>
 
-    <!-- Modal para Editar Insumo -->
+    <!-- Modal para Editar/Crear Insumo -->
     <div id="modalEditarInsumo" class="modal">
         <div class="modal-content">
-            <h3>Editar Insumo</h3>
+            <h3 id="modalEditarTitulo">Editar Insumo</h3>
             <form id="formEditarInsumo">
                 <input type="hidden" id="editarInsumoId" name="insumo_id">
                 <div class="form-group">
@@ -250,7 +200,8 @@ while ($insumo = $insumos->fetch_assoc()) {
                 </div>
                 <div class="modal-actions">
                     <button type="button" class="btn btn-secondary" onclick="cerrarEditarModal()">Cancelar</button>
-                    <button type="submit" class="btn btn-primary">Guardar</button>
+                    <button type="button" id="btnEliminarInsumo" class="btn btn-danger" onclick="confirmarEliminar()">Eliminar</button>
+                    <button type="submit" id="btnGuardarInsumo" class="btn btn-primary">Guardar</button>
                 </div>
             </form>
         </div>

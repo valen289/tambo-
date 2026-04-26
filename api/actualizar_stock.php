@@ -163,7 +163,7 @@ switch ($accion) {
         $consumo_promedio_diario = floatval($_POST['consumo_promedio_diario'] ?? 0);
 
         if (empty($nombre) || empty($unidad) || $capacidad_maxima <= 0 || $stock_minimo < 0 || $stock_actual < 0) {
-            echo json_encode(['success' => false, 'message' => 'Datos inválidos para actualizar el insumo']);
+            echo json_encode(['success' => false, 'message' => 'Datos inválidos para guardar el insumo']);
             exit();
         }
 
@@ -172,13 +172,54 @@ switch ($accion) {
             exit();
         }
 
-        $stmt = $conn->prepare("UPDATE insumos SET nombre = ?, unidad = ?, capacidad_maxima = ?, stock_actual = ?, stock_minimo = ?, consumo_promedio_diario = ? WHERE id = ?");
-        $stmt->bind_param("ssdddi", $nombre, $unidad, $capacidad_maxima, $stock_actual, $stock_minimo, $consumo_promedio_diario, $insumo_id);
+        if ($insumo_id <= 0) {
+            // Crear nuevo insumo
+            $stmt = $conn->prepare("INSERT INTO insumos (nombre, unidad, capacidad_maxima, stock_actual, stock_minimo, consumo_promedio_diario, activo) VALUES (?, ?, ?, ?, ?, ?, TRUE)");
+            $stmt->bind_param("ssdddd", $nombre, $unidad, $capacidad_maxima, $stock_actual, $stock_minimo, $consumo_promedio_diario);
+            
+            if ($stmt->execute()) {
+                echo json_encode(['success' => true, 'message' => 'Insumo creado correctamente']);
+            } else {
+                echo json_encode(['success' => false, 'message' => 'No se pudo crear el insumo']);
+            }
+        } else {
+            // Actualizar insumo existente
+            $stmt = $conn->prepare("UPDATE insumos SET nombre = ?, unidad = ?, capacidad_maxima = ?, stock_actual = ?, stock_minimo = ?, consumo_promedio_diario = ? WHERE id = ?");
+            $stmt->bind_param("ssdddi", $nombre, $unidad, $capacidad_maxima, $stock_actual, $stock_minimo, $consumo_promedio_diario, $insumo_id);
+            
+            if ($stmt->execute()) {
+                echo json_encode(['success' => true, 'message' => 'Insumo actualizado correctamente']);
+            } else {
+                echo json_encode(['success' => false, 'message' => 'No se pudo actualizar el insumo']);
+            }
+        }
+        break;
+        
+    case 'eliminar_insumo':
+        $insumo_id = intval($_POST['insumo_id']);
+        
+        if ($insumo_id <= 0) {
+            echo json_encode(['success' => false, 'message' => 'ID de insumo inválido']);
+            exit();
+        }
+        
+        // Verificar que el insumo existe
+        $stmt = $conn->prepare("SELECT id FROM insumos WHERE id = ?");
+        $stmt->bind_param("i", $insumo_id);
+        $stmt->execute();
+        if ($stmt->get_result()->num_rows === 0) {
+            echo json_encode(['success' => false, 'message' => 'Insumo no encontrado']);
+            exit();
+        }
+        
+        // En lugar de eliminar, marcar como inactivo
+        $stmt = $conn->prepare("UPDATE insumos SET activo = FALSE WHERE id = ?");
+        $stmt->bind_param("i", $insumo_id);
         
         if ($stmt->execute()) {
-            echo json_encode(['success' => true, 'message' => 'Insumo actualizado correctamente']);
+            echo json_encode(['success' => true, 'message' => 'Insumo eliminado correctamente']);
         } else {
-            echo json_encode(['success' => false, 'message' => 'No se pudo actualizar el insumo']);
+            echo json_encode(['success' => false, 'message' => 'No se pudo eliminar el insumo']);
         }
         break;
         
