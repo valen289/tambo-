@@ -8,6 +8,8 @@ CREATE TABLE usuarios (
     cedula VARCHAR(20) UNIQUE NOT NULL,
     nombre VARCHAR(100) NOT NULL,
     password VARCHAR(255) NOT NULL,
+    email VARCHAR(150) NULL,
+    telefono VARCHAR(30) NULL,
     rol ENUM('admin', 'operario', 'usuario') NOT NULL DEFAULT 'operario',
     activo BOOLEAN DEFAULT TRUE,
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -93,3 +95,8 @@ CREATE TABLE logs_actividad (
 -- Agregar campo tipo_movimiento a consumo_diario
 ALTER TABLE consumo_diario 
 ADD COLUMN tipo_movimiento ENUM('consumo', 'ingreso', 'ajuste_positivo', 'ajuste_negativo') DEFAULT 'consumo' AFTER observaciones;
+
+-- Agregar campos de contacto a usuarios
+ALTER TABLE usuarios
+ADD COLUMN IF NOT EXISTS email VARCHAR(150) NULL AFTER password,
+ADD COLUMN IF NOT EXISTS telefono VARCHAR(30) NULL AFTER email;

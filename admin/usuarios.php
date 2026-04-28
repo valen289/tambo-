@@ -20,11 +20,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion'])) {
         case 'crear':
             $cedula = $_POST['cedula'];
             $nombre = $_POST['nombre'];
+            $email = trim($_POST['email'] ?? '');
+            $telefono = trim($_POST['telefono'] ?? '');
             $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
             $rol = $_POST['rol'];
             
-            $stmt = $conn->prepare("INSERT INTO usuarios (cedula, nombre, password, rol) VALUES (?, ?, ?, ?)");
-            $stmt->bind_param("ssss", $cedula, $nombre, $password, $rol);
+            $stmt = $conn->prepare("INSERT INTO usuarios (cedula, nombre, password, email, telefono, rol) VALUES (?, ?, ?, ?, ?, ?)");
+            $stmt->bind_param("ssssss", $cedula, $nombre, $password, $email, $telefono, $rol);
             
             if ($stmt->execute()) {
                 $mensaje = "Usuario creado correctamente";
@@ -38,10 +40,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion'])) {
         case 'editar':
             $id = $_POST['id'];
             $nombre = $_POST['nombre'];
+            $email = trim($_POST['email'] ?? '');
+            $telefono = trim($_POST['telefono'] ?? '');
             $rol = $_POST['rol'];
             
-            $stmt = $conn->prepare("UPDATE usuarios SET nombre = ?, rol = ? WHERE id = ?");
-            $stmt->bind_param("ssi", $nombre, $rol, $id);
+            $stmt = $conn->prepare("UPDATE usuarios SET nombre = ?, email = ?, telefono = ?, rol = ? WHERE id = ?");
+            $stmt->bind_param("ssssi", $nombre, $email, $telefono, $rol, $id);
             
             if ($stmt->execute()) {
                 $mensaje = "Usuario actualizado correctamente";
@@ -142,6 +146,18 @@ $usuarios = $conn->query("SELECT * FROM usuarios ORDER BY fecha_creacion DESC");
                             <input type="text" id="nombre" name="nombre" 
                                    value="<?php echo htmlspecialchars($usuarioEditando['nombre']); ?>" required>
                         </div>
+
+                        <div class="form-group">
+                            <label for="email">Email</label>
+                            <input type="email" id="email" name="email" 
+                                   value="<?php echo htmlspecialchars($usuarioEditando['email']); ?>" placeholder="usuario@gmail.com" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="telefono">Teléfono</label>
+                            <input type="text" id="telefono" name="telefono" 
+                                   value="<?php echo htmlspecialchars($usuarioEditando['telefono']); ?>" placeholder="Ej: +5491112345678">
+                        </div>
                         
                         <div class="form-group">
                             <label for="rol">Rol</label>
@@ -169,6 +185,18 @@ $usuarios = $conn->query("SELECT * FROM usuarios ORDER BY fecha_creacion DESC");
                             <label for="nombre">Nombre Completo</label>
                             <input type="text" id="nombre" name="nombre" 
                                    placeholder="Nombre y apellido" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="email">Email</label>
+                            <input type="email" id="email" name="email" 
+                                   placeholder="usuario@gmail.com">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="telefono">Teléfono</label>
+                            <input type="text" id="telefono" name="telefono" 
+                                   placeholder="Ej: +5491112345678">
                         </div>
                         
                         <div class="form-group">
@@ -232,6 +260,8 @@ $usuarios = $conn->query("SELECT * FROM usuarios ORDER BY fecha_creacion DESC");
                         <tr>
                             <th>Cédula</th>
                             <th>Nombre</th>
+                            <th>Email</th>
+                            <th>Teléfono</th>
                             <th>Rol</th>
                             <th>Estado</th>
                             <th>Último Acceso</th>
@@ -246,6 +276,8 @@ $usuarios = $conn->query("SELECT * FROM usuarios ORDER BY fecha_creacion DESC");
                         <tr>
                             <td><?php echo htmlspecialchars($user['cedula']); ?></td>
                             <td><?php echo htmlspecialchars($user['nombre']); ?></td>
+                            <td><?php echo htmlspecialchars($user['email']); ?></td>
+                            <td><?php echo htmlspecialchars($user['telefono']); ?></td>
                             <td>
                                 <span class="badge badge-<?php echo $user['rol']; ?>">
                                     <?php echo ucfirst($user['rol']); ?>

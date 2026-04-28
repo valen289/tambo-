@@ -1,6 +1,11 @@
 <?php
+@ini_set('display_errors', 0);
+@ini_set('display_startup_errors', 0);
+error_reporting(E_ERROR | E_PARSE);
+
 require_once '../includes/db.php';
 require_once '../includes/auth.php';
+require_once '../includes/functions.php';
 
 header('Content-Type: application/json');
 
@@ -65,6 +70,8 @@ switch ($accion) {
             $stmt->execute();
             
             $conn->commit();
+
+            notificarStockBajo($conn, $insumo_id, $_SESSION['usuario_id']);
             
             echo json_encode([
                 'success' => true, 
@@ -123,6 +130,8 @@ switch ($accion) {
             }
             
             $conn->commit();
+
+            notificarStockBajo($conn, $insumo_id, $_SESSION['usuario_id']);
             
             echo json_encode([
                 'success' => true, 
@@ -185,7 +194,7 @@ switch ($accion) {
         } else {
             // Actualizar insumo existente
             $stmt = $conn->prepare("UPDATE insumos SET nombre = ?, unidad = ?, capacidad_maxima = ?, stock_actual = ?, stock_minimo = ?, consumo_promedio_diario = ? WHERE id = ?");
-            $stmt->bind_param("ssdddi", $nombre, $unidad, $capacidad_maxima, $stock_actual, $stock_minimo, $consumo_promedio_diario, $insumo_id);
+            $stmt->bind_param("ssddddi", $nombre, $unidad, $capacidad_maxima, $stock_actual, $stock_minimo, $consumo_promedio_diario, $insumo_id);
             
             if ($stmt->execute()) {
                 echo json_encode(['success' => true, 'message' => 'Insumo actualizado correctamente']);

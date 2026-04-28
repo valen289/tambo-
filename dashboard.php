@@ -23,12 +23,18 @@ $insumos = $conn->query("
 ");
 
 // Calcular días restantes y consumo promedio
+$lista_insumos = [];
 while ($insumo = $insumos->fetch_assoc()) {
     if ($insumo['consumo_promedio_diario'] > 0) {
         $insumo['dias_restantes'] = floor($insumo['stock_actual'] / $insumo['consumo_promedio_diario']);
     } else {
         $insumo['dias_restantes'] = 999;
     }
+    
+    // Detectar si es silo en kg con <= 1000 kilos
+    $esSiloKg = stripos($insumo['nombre'], 'silo') !== false && strtolower(trim($insumo['unidad'])) === 'kg';
+    $insumo['alerta_1000_kilos'] = $esSiloKg && $insumo['stock_actual'] <= 1000;
+    
     $lista_insumos[] = $insumo;
 }
 ?>
@@ -61,7 +67,9 @@ while ($insumo = $insumos->fetch_assoc()) {
             <div class="card-body">
                 <p><strong>Nombre:</strong> <?php echo htmlspecialchars($_SESSION['nombre']); ?></p>
                 <p><strong>Cédula:</strong> <?php echo htmlspecialchars($_SESSION['cedula'] ?? 'N/A'); ?></p>
-                <p><strong>Rol:</strong> <?php echo ucfirst($_SESSION['rol']); ?></p>
+                <p><strong>Email:</strong> <?php echo htmlspecialchars($_SESSION['email'] ?? 'No registrado'); ?></p>
+                <p><strong>Teléfono:</strong> <?php echo htmlspecialchars($_SESSION['telefono'] ?? 'No registrado'); ?></p>
+                <p><strong></strong>Rol:</strong> <?php echo ucfirst($_SESSION['rol']); ?></p>
                 <p><strong>Último acceso:</strong> <?php echo htmlspecialchars($_SESSION['ultimo_acceso'] ?? 'Nunca'); ?></p>
                 <?php if (esOperario()): ?>
                     <p>Esta es tu sección de operario. Aquí puedes registrar consumos y ver el stock disponible.</p>
@@ -73,21 +81,7 @@ while ($insumo = $insumos->fetch_assoc()) {
             </div>
         </div>
 
-        <?php if (esUsuario() || esAdmin()): ?>
-        <!-- Añadir Nuevo Insumo (Solo Usuario administrativo o Admin) -->
-        <div class="card">
-            <h3>Añadir Nuevo Insumo</h3>
-            <form id="formInsumo" class="form-grid">
-                <input type="text" name="nombre" placeholder="Nombre del Insumo" required>
-                <input type="number" name="capacidad" placeholder="Capacidad Máxima" required>
-                <input type="number" name="stock" placeholder="Stock Inicial" required>
-                <input type="text" name="unidad" placeholder="Unidad (kg, fardos)" required>
-                <input type="number" name="minimo" placeholder="Stock Mínimo" required>
-                <input type="number" name="consumo" placeholder="Consumo Diario Estimado">
-                <button type="submit" class="btn btn-primary btn-block">Añadir Insumo</button>
-            </form>
-        </div>
-        <?php endif; ?>
+
 
         <!-- Control de Stock -->
         <div class="section-header">
@@ -130,7 +124,9 @@ while ($insumo = $insumos->fetch_assoc()) {
                         </div>
                     </div>
                     
-                    <?php if ($insumo['estado_alerta'] === 'bajo'): ?>
+                    <?php if ($insumo['alerta_1000_kilos']): ?>
+                    <div class="alerta stock-peligro">⚠️ ¡Quedan <?php echo number_format($insumo['stock_actual'], 0, ',', '.'); ?> kilos! Repone el silo</div>
+                    <?php elseif ($insumo['estado_alerta'] === 'bajo'): ?>
                     <div class="alerta stock-bajo">Stock bajo</div>
                     <?php elseif ($insumo['estado_alerta'] === 'critico'): ?>
                     <div class="alerta stock-critico">Stock crítico</div>
@@ -176,27 +172,27 @@ while ($insumo = $insumos->fetch_assoc()) {
                 <input type="hidden" id="editarInsumoId" name="insumo_id">
                 <div class="form-group">
                     <label>Nombre del Insumo</label>
-                    <input type="text" id="editarNombre" name="nombre" required>
+                    <input type="text" id="editarNombre" name="nombre" placeholder="Nombre del Insumo" required>
                 </div>
                 <div class="form-group">
                     <label>Unidad</label>
-                    <input type="text" id="editarUnidad" name="unidad" required>
+                    <input type="text" id="editarUnidad" name="unidad" placeholder="Unidad (kg, fardos)" required>
                 </div>
                 <div class="form-group">
                     <label>Capacidad Máxima</label>
-                    <input type="number" id="editarCapacidad" name="capacidad_maxima" step="0.01" required>
+                    <input type="number" id="editarCapacidad" name="capacidad_maxima" step="0.01" placeholder="Capacidad Máxima" required>
                 </div>
                 <div class="form-group">
                     <label>Stock Actual</label>
-                    <input type="number" id="editarStock" name="stock_actual" step="0.01" required>
+                    <input type="number" id="editarStock" name="stock_actual" step="0.01" placeholder="Stock Inicial" required>
                 </div>
                 <div class="form-group">
                     <label>Stock Mínimo</label>
-                    <input type="number" id="editarMinimo" name="stock_minimo" step="0.01" required>
+                    <input type="number" id="editarMinimo" name="stock_minimo" step="0.01" placeholder="Stock Mínimo" required>
                 </div>
                 <div class="form-group">
                     <label>Consumo Promedio Diario</label>
-                    <input type="number" id="editarConsumo" name="consumo_promedio_diario" step="0.01">
+                    <input type="number" id="editarConsumo" name="consumo_promedio_diario" step="0.01" placeholder="Consumo Diario Estimado">
                 </div>
                 <div class="modal-actions">
                     <button type="button" class="btn btn-secondary" onclick="cerrarEditarModal()">Cancelar</button>
@@ -206,6 +202,8 @@ while ($insumo = $insumos->fetch_assoc()) {
             </form>
         </div>
     </div>
+
+    <div id="toastContainer" class="toast-container" aria-live="polite" aria-atomic="true"></div>
 
     <script src="assets/js/app.js.php"></script>
 </body>

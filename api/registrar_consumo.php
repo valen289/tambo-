@@ -1,6 +1,11 @@
 <?php
+@ini_set('display_errors', 0);
+@ini_set('display_startup_errors', 0);
+error_reporting(E_ERROR | E_PARSE);
+
 session_start();
 require_once '../includes/db.php';
+require_once '../includes/functions.php';
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
 header('Content-Type: application/json');
@@ -51,6 +56,7 @@ try {
     }
 
     $conn->begin_transaction();
+    $transactionStarted = true;
 
     $stmt = $conn->prepare("INSERT INTO consumo_diario (insumo_id, usuario_id, cantidad, fecha, hora, observaciones) VALUES (?, ?, ?, CURDATE(), CURTIME(), ?)");
     $stmt->bind_param("iids", $insumo_id, $usuario_id, $cantidad, $observaciones);
@@ -74,10 +80,14 @@ try {
     $stmt->execute();
     
     $conn->commit();
+
+    // Notificar si el silo en kilos está por quedarse sin stock
+    notificarStockBajo($conn, $insumo_id, $usuario_id);
+
     echo json_encode(['success' => true]);
 
 } catch (Exception $e) {
-    if ($conn->in_transaction) {
+    if (!empty($transactionStarted)) {
         $conn->rollback();
     }
     echo json_encode(['success' => false, 'message' => 'Error de base de datos: ' . $e->getMessage()]);

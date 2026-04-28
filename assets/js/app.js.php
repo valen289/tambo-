@@ -4,6 +4,56 @@ header('Content-Type: application/javascript');
 $usuarioId = isset($_SESSION['usuario_id']) ? addslashes($_SESSION['usuario_id']) : '';
 ?>
 
+const apiBaseUrl = `${window.location.origin}/api`;
+
+function showToast(message, type = 'success') {
+    const container = document.getElementById('toastContainer');
+    if (!container) {
+        alert(message);
+        return;
+    }
+
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.textContent = message;
+    container.appendChild(toast);
+
+    requestAnimationFrame(() => toast.classList.add('toast-visible'));
+
+    setTimeout(() => {
+        toast.classList.remove('toast-visible');
+        setTimeout(() => toast.remove(), 300);
+    }, 4200);
+}
+
+async function requestApi(endpoint, init = {}) {
+    const response = await fetch(`${apiBaseUrl}/${endpoint}`, {
+        credentials: 'same-origin',
+        ...init
+    });
+
+    const text = await response.text();
+    const contentType = response.headers.get('Content-Type') || '';
+
+    if (response.redirected || contentType.includes('text/html')) {
+        throw new Error('Se ha redirigido a una página HTML. Comprueba que la sesión esté activa y que la API esté en el mismo origen.');
+    }
+
+    let data;
+    try {
+        data = text ? JSON.parse(text) : {};
+    } catch (error) {
+        throw new Error(`Respuesta no válida del servidor (${response.status}): ${text}`);
+    }
+
+    if (!response.ok) {
+        const message = data.message || response.statusText || 'Error en la petición';
+        throw new Error(`HTTP ${response.status}: ${message}`);
+    }
+
+    return data;
+}
+
 // Registrar Uso
 function registrarUso(id, nombre, stockActual) {
     document.getElementById('insumoId').value = id;
@@ -32,7 +82,7 @@ function confirmarEliminar() {
 }
 
 function eliminarInsumo(insumoId) {
-    fetch('api/actualizar_stock.php', {
+    requestApi('actualizar_stock.php', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded'
@@ -42,40 +92,38 @@ function eliminarInsumo(insumoId) {
             insumo_id: insumoId
         })
     })
-    .then(response => response.json())
     .then(data => {
         if (data.success) {
-            alert('Insumo eliminado correctamente');
+            showToast('Insumo eliminado correctamente', 'success');
             cerrarEditarModal();
             location.reload();
         } else {
-            alert('Error: ' + data.message);
+            showToast('Error: ' + data.message, 'error');
         }
     })
-    .catch(() => {
-        alert('Error de red al eliminar el insumo.');
+    .catch(error => {
+        showToast('Error de red al eliminar el insumo. ' + error.message, 'error');
     });
 }
 
 // Ajustar Ganado
 function ajustarGanado(cambio) {
-    fetch('api/actualizar_ganado.php', {
+    requestApi('actualizar_ganado.php', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
         },
         body: JSON.stringify({ cambio: cambio })
     })
-    .then(response => response.json())
     .then(data => {
         if (data.success) {
             location.reload();
         } else {
-            alert('Error: ' + data.message);
+            showToast('Error: ' + data.message, 'error');
         }
     })
-    .catch(() => {
-        alert('Error de red al actualizar el ganado.');
+    .catch(error => {
+        showToast('Error de red al actualizar el ganado. ' + error.message, 'error');
     });
 }
 
@@ -88,22 +136,21 @@ if (formConsumo) {
         const formData = new FormData(this);
         formData.append('usuario_id', '<?php echo $usuarioId; ?>');
 
-        fetch('api/registrar_consumo.php', {
+        requestApi('registrar_consumo.php', {
             method: 'POST',
             body: formData
         })
-        .then(response => response.json())
         .then(data => {
             if (data.success) {
-                alert('Consumo registrado correctamente');
+                showToast('Consumo registrado correctamente', 'success');
                 cerrarModal();
                 location.reload();
             } else {
-                alert('Error: ' + data.message);
+                showToast('Error: ' + data.message, 'error');
             }
         })
-        .catch(() => {
-            alert('Error de red al registrar el consumo.');
+        .catch(error => {
+            showToast('Error de red al registrar el consumo. ' + error.message, 'error');
         });
     });
 }
@@ -126,7 +173,7 @@ function editarInsumo(id) {
     const modal = document.getElementById('modalEditarInsumo');
     const form = document.getElementById('formEditarInsumo');
 
-    fetch('api/actualizar_stock.php', {
+    requestApi('actualizar_stock.php', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded'
@@ -136,10 +183,9 @@ function editarInsumo(id) {
             insumo_id: id
         })
     })
-    .then(response => response.json())
     .then(data => {
         if (!data.success) {
-            alert('Error: ' + data.message);
+            showToast('Error: ' + data.message, 'error');
             return;
         }
 
@@ -157,8 +203,8 @@ function editarInsumo(id) {
 
         modal.style.display = 'flex';
     })
-    .catch(() => {
-        alert('Error de red al obtener datos del insumo.');
+    .catch(error => {
+        showToast('Error de red al obtener datos del insumo. ' + (error.message || ''), 'error');
     });
 }
 
@@ -171,23 +217,22 @@ if (formEditarInsumo) {
         formData.append('accion', 'editar_insumo');
         const insumoId = document.getElementById('editarInsumoId').value;
 
-        fetch('api/actualizar_stock.php', {
+        requestApi('actualizar_stock.php', {
             method: 'POST',
             body: formData
         })
-        .then(response => response.json())
         .then(data => {
             if (data.success) {
                 const mensaje = insumoId ? 'Insumo actualizado correctamente' : 'Insumo creado correctamente';
-                alert(mensaje);
+                showToast(mensaje, 'success');
                 cerrarEditarModal();
                 location.reload();
             } else {
-                alert('Error: ' + data.message);
+                showToast('Error: ' + data.message, 'error');
             }
         })
-        .catch(() => {
-            alert('Error de red al guardar el insumo.');
+        .catch(error => {
+            showToast('Error de red al guardar el insumo. ' + error.message, 'error');
         });
     });
 }
@@ -198,22 +243,21 @@ if (formInsumo) {
     formInsumo.addEventListener('submit', function(e) {
         e.preventDefault();
 
-        fetch('api/agregar_insumo.php', {
+        requestApi('agregar_insumo.php', {
             method: 'POST',
             body: new FormData(this)
         })
-        .then(response => response.json())
         .then(data => {
             if (data.success) {
-                alert('Insumo agregado correctamente');
+                showToast('Insumo agregado correctamente', 'success');
                 this.reset();
                 location.reload();
             } else {
-                alert('Error: ' + data.message);
+                showToast('Error: ' + data.message, 'error');
             }
         })
-        .catch(() => {
-            alert('Error de red al agregar el insumo.');
+        .catch(error => {
+            showToast('Error de red al agregar el insumo. ' + error.message, 'error');
         });
     });
 }

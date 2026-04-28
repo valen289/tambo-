@@ -10,29 +10,29 @@ if (isset($_SESSION['usuario_id'])) {
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $cedula = $_POST['cedula'];
-    $password = $_POST['password'];
-    
-    $stmt = $conn->prepare("SELECT id, cedula, nombre, password, rol FROM usuarios WHERE cedula = ? AND activo = TRUE");
+    $cedula = trim($_POST['cedula'] ?? '');
+    $password = $_POST['password'] ?? '';
+
+    $stmt = $conn->prepare("SELECT id, cedula, nombre, password, rol, email, telefono FROM usuarios WHERE cedula = ? AND activo = TRUE");
     $stmt->bind_param("s", $cedula);
     $stmt->execute();
     $result = $stmt->get_result();
-    
-    if ($result->num_rows === 1) {
+
+    if ($result && $result->num_rows === 1) {
         $usuario = $result->fetch_assoc();
         if (password_verify($password, $usuario['password'])) {
             $_SESSION['usuario_id'] = $usuario['id'];
             $_SESSION['nombre'] = $usuario['nombre'];
             $_SESSION['rol'] = $usuario['rol'];
             $_SESSION['cedula'] = $usuario['cedula'];
-            
-            $conn->query("UPDATE usuarios SET ultimo_acceso = NOW() WHERE id = {$usuario['id']}");
-            
+            $_SESSION['email'] = $usuario['email'];
+            $_SESSION['telefono'] = $usuario['telefono'];
+
             header("Location: dashboard.php");
             exit();
         }
     }
-    
+
     $error = "Cédula o contraseña incorrectos";
 }
 ?>

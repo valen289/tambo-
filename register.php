@@ -9,14 +9,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $nombre = trim($_POST['nombre'] ?? '');
     $apellido = trim($_POST['apellido'] ?? '');
     $cedula = trim($_POST['cedula'] ?? '');
+    $email = trim($_POST['email'] ?? '');
+    $telefono = trim($_POST['telefono'] ?? '');
     $contrasena = $_POST['contrasena'] ?? '';
     $confirmar = $_POST['confirmar'] ?? '';
     $rol = $_POST['rol'] ?? 'operario';
 
-    if (empty($nombre) || empty($apellido) || empty($cedula) || empty($contrasena)) {
-        $error = 'Todos los campos son obligatorios.';
+    if (empty($nombre) || empty($apellido) || empty($cedula) || empty($contrasena) || empty($email)) {
+        $error = 'Todos los campos obligatorios deben estar completos.';
     } elseif (!in_array($rol, ['operario', 'usuario'])) {
         $error = 'Rol inválido.';
+    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $error = 'Ingrese un correo electrónico válido.';
+    } elseif ($telefono !== '' && !preg_match('/^[0-9+\-\s]+$/', $telefono)) {
+        $error = 'Ingrese un número de teléfono válido.';
     } elseif ($contrasena !== $confirmar) {
         $error = 'Las contraseñas no coinciden.';
     } elseif (strlen($contrasena) < 6) {
@@ -34,8 +40,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = 'Ya existe un usuario con esa cédula.';
         } else {
             $hash = password_hash($contrasena, PASSWORD_DEFAULT);
-            $stmt = $conn->prepare("INSERT INTO usuarios (cedula, nombre, password, rol) VALUES (?, ?, ?, ?)");
-            $stmt->bind_param("ssss", $cedula, $nombreCompleto, $hash, $rol);
+            $stmt = $conn->prepare("INSERT INTO usuarios (cedula, nombre, password, email, telefono, rol) VALUES (?, ?, ?, ?, ?, ?)");
+            $stmt->bind_param("ssssss", $cedula, $nombreCompleto, $hash, $email, $telefono, $rol);
             $stmt->execute();
             $success = 'Usuario registrado exitosamente.';
         }
@@ -100,17 +106,54 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
 
                     <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" name="email" placeholder="Ej: correo@gmail.com"
+                            value="<?= htmlspecialchars($_POST['email'] ?? '') ?>" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Teléfono</label>
+                        <input type="text" name="telefono" placeholder="Ej: +5491112345678"
+                            value="<?= htmlspecialchars($_POST['telefono'] ?? '') ?>">
+                    </div>
+
+                    <div class="form-group">
                         <label>Contraseña</label>
-                        <input type="password" name="contrasena" placeholder="Mínimo 6 caracteres" required>
+                        <div class="password-input-wrapper">
+                            <input type="password" id="contrasena" name="contrasena" placeholder="Mínimo 6 caracteres" required>
+                            <button type="button" class="password-toggle" data-target="contrasena" aria-label="Mostrar contraseña">👁</button>
+                        </div>
                     </div>
 
                     <div class="form-group">
                         <label>Confirmar Contraseña</label>
-                        <input type="password" name="confirmar" placeholder="Repita su contraseña" required>
+                        <div class="password-input-wrapper">
+                            <input type="password" id="confirmar" name="confirmar" placeholder="Repita su contraseña" required>
+                            <button type="button" class="password-toggle" data-target="confirmar" aria-label="Mostrar contraseña">👁</button>
+                        </div>
                     </div>
 
                     <button type="submit" class="btn btn-primary btn-block">Registrarse</button>
                 </form>
+
+                <script>
+                    document.querySelectorAll('.password-toggle').forEach(function(button) {
+                        button.addEventListener('click', function() {
+                            var targetId = button.getAttribute('data-target');
+                            var input = document.getElementById(targetId);
+                            if (!input) return;
+                            if (input.type === 'password') {
+                                input.type = 'text';
+                                button.textContent = '🙈';
+                                button.setAttribute('aria-label', 'Ocultar contraseña');
+                            } else {
+                                input.type = 'password';
+                                button.textContent = '👁';
+                                button.setAttribute('aria-label', 'Mostrar contraseña');
+                            }
+                        });
+                    });
+                </script>
 
                 <?php endif; ?>
 
