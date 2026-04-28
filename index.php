@@ -3,7 +3,7 @@ session_start();
 require_once 'includes/db.php';
 
 if (isset($_SESSION['usuario_id'])) {
-    header("Location: dashboard.php");
+    header("Location: silos.php");
     exit();
 }
 
@@ -28,7 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['email'] = $usuario['email'];
             $_SESSION['telefono'] = $usuario['telefono'];
 
-            header("Location: dashboard.php");
+            header("Location: silos.php");
             exit();
         }
     }

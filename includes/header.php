@@ -1,6 +1,11 @@
 <header>
     <div class="header-left">
-        <h1> SiCoDiEt </h1>
+        <h1>SiCoDiEt</h1>
+        <nav class="main-nav">
+            <a href="silos.php">Silos</a>
+            <a href="lotes.php">Lotes</a>
+            <a href="consumos.php">Consumos</a>
+        </nav>
     </div>
     <div class="header-right">
         <span><?php echo htmlspecialchars($_SESSION['nombre']); ?></span>

@@ -318,7 +318,7 @@ function notificarStockBajo($conn, $insumo_id, $usuario_id) {
         return false;
     }
 
-    $stmt = $conn->prepare("SELECT nombre, unidad, stock_actual, consumo_promedio_diario FROM insumos WHERE id = ?");
+    $stmt = $conn->prepare("SELECT nombre, tipo_insumo, unidad, stock_actual, stock_minimo, consumo_promedio_diario FROM insumos WHERE id = ?");
     $stmt->bind_param("i", $insumo_id);
     $stmt->execute();
     $insumo = $stmt->get_result()->fetch_assoc();
@@ -327,14 +327,16 @@ function notificarStockBajo($conn, $insumo_id, $usuario_id) {
         return false;
     }
 
-    if (empty($insumo['consumo_promedio_diario']) || $insumo['consumo_promedio_diario'] <= 0) {
-        return false;
+    $esSiloKg = stripos($insumo['tipo_insumo'], 'silo') !== false || stripos($insumo['nombre'], 'silo') !== false;
+    $minimoSuperado = $insumo['stock_actual'] <= $insumo['stock_minimo'];
+    $diasRestantes = null;
+    $consumoDisponible = !empty($insumo['consumo_promedio_diario']) && $insumo['consumo_promedio_diario'] > 0;
+
+    if ($consumoDisponible) {
+        $diasRestantes = $insumo['stock_actual'] / $insumo['consumo_promedio_diario'];
     }
 
-    $diasRestantes = $insumo['stock_actual'] / $insumo['consumo_promedio_diario'];
-    $esSiloKg = stripos($insumo['nombre'], 'silo') !== false && strtolower(trim($insumo['unidad'])) === 'kg';
-
-    if (!$esSiloKg || $diasRestantes > 3) {
+    if (!$minimoSuperado && (!$esSiloKg || $diasRestantes === null || $diasRestantes > 3)) {
         return false;
     }
 
@@ -347,11 +349,21 @@ function notificarStockBajo($conn, $insumo_id, $usuario_id) {
         return false;
     }
 
-    $diasRestantesRedondeados = ceil($diasRestantes);
-    $asunto = "Alerta de stock bajo: quedan {$diasRestantesRedondeados} días de {$insumo['nombre']}";
     $mensaje = "Hola {$usuario['nombre']},\n\n";
-    $mensaje .= "El silo '{$insumo['nombre']}' tiene {$insumo['stock_actual']} kg disponibles y un consumo promedio estimado de {$insumo['consumo_promedio_diario']} kg/día.\n";
-    $mensaje .= "Esto indica que quedan aproximadamente {$diasRestantesRedondeados} día(s) de consumo.\n\n";
+    $mensaje .= "El silo '{$insumo['nombre']}' ({$insumo['tipo_insumo']}) tiene {$insumo['stock_actual']} {$insumo['unidad']} disponibles.\n";
+
+    if ($minimoSuperado) {
+        $mensaje .= "El stock actual está por debajo del mínimo definido de {$insumo['stock_minimo']} {$insumo['unidad']}.\n";
+    }
+
+    if ($consumoDisponible && $diasRestantes !== null) {
+        $diasRestantesRedondeados = ceil($diasRestantes);
+        $mensaje .= "Con el consumo promedio estimado de {$insumo['consumo_promedio_diario']} {$insumo['unidad']}/día, quedan aproximadamente {$diasRestantesRedondeados} día(s) de stock.\n";
+        $asunto = "Alerta de stock bajo: quedan {$diasRestantesRedondeados} días de {$insumo['nombre']}";
+    } else {
+        $asunto = "Alerta de stock bajo: {$insumo['nombre']} está por debajo del mínimo";
+    }
+
     $mensaje .= "Por favor, reponga el silo cuanto antes para evitar quedarse sin stock.\n\n";
     $mensaje .= "Saludos,\nEquipo SiCoDiEt";
 

@@ -17,6 +17,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (empty($nombre) || empty($apellido) || empty($cedula) || empty($contrasena) || empty($email)) {
         $error = 'Todos los campos obligatorios deben estar completos.';
+    } elseif (!preg_match('/^[0-9]{6,8}$/', $cedula)) {
+        $error = 'La cédula de identidad debe contener solo números (6 a 8 dígitos).';
     } elseif (!in_array($rol, ['operario', 'usuario'])) {
         $error = 'Rol inválido.';
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
@@ -55,6 +57,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SiCoDiEt - Registro</title>
     <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@21.2.6/build/css/intlTelInput.css">
 </head>
 <body>
     <div class="login-page">
@@ -101,19 +104,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     <div class="form-group">
                         <label>Cédula de Identidad</label>
-                        <input type="text" name="cedula" placeholder="Ej: 12345678"
-                            value="<?= htmlspecialchars($_POST['cedula'] ?? '') ?>" required>
+                        <input type="text" id="cedula" name="cedula" placeholder="Ej: 12345678"
+                            value="<?= htmlspecialchars($_POST['cedula'] ?? '') ?>"
+                            inputmode="numeric" pattern="[0-9]{6,8}" maxlength="8"
+                            title="Solo números, entre 6 y 8 dígitos" required>
                     </div>
 
                     <div class="form-group">
                         <label>Email</label>
                         <input type="email" name="email" placeholder="Ej: correo@gmail.com"
-                            value="<?= htmlspecialchars($_POST['email'] ?? '') ?>" required>
+                            value="<?= filter_var($_POST['email'] ?? '', FILTER_VALIDATE_EMAIL) ? htmlspecialchars($_POST['email']) : '' ?>"
+                            autocomplete="email" required>
                     </div>
 
                     <div class="form-group">
                         <label>Teléfono</label>
-                        <input type="text" name="telefono" placeholder="Ej: +5491112345678"
+                        <input type="tel" id="phone" name="telefono" placeholder="Teléfono" 
                             value="<?= htmlspecialchars($_POST['telefono'] ?? '') ?>">
                     </div>
 
@@ -136,21 +142,51 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <button type="submit" class="btn btn-primary btn-block">Registrarse</button>
                 </form>
 
+                <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@21.2.6/build/js/intlTelInput.min.js"></script>
                 <script>
-                    document.querySelectorAll('.password-toggle').forEach(function(button) {
-                        button.addEventListener('click', function() {
-                            var targetId = button.getAttribute('data-target');
-                            var input = document.getElementById(targetId);
-                            if (!input) return;
-                            if (input.type === 'password') {
-                                input.type = 'text';
-                                button.textContent = '🙈';
-                                button.setAttribute('aria-label', 'Ocultar contraseña');
-                            } else {
-                                input.type = 'password';
-                                button.textContent = '👁';
-                                button.setAttribute('aria-label', 'Mostrar contraseña');
-                            }
+                    document.addEventListener('DOMContentLoaded', function() {
+                        // Cédula: solo números en tiempo real
+                        var cedulaInput = document.getElementById('cedula');
+                        if (cedulaInput) {
+                            cedulaInput.addEventListener('input', function() {
+                                this.value = this.value.replace(/[^0-9]/g, '');
+                            });
+                            cedulaInput.addEventListener('keypress', function(e) {
+                                if (!/[0-9]/.test(e.key)) e.preventDefault();
+                            });
+                        }
+
+                        var phoneInput = document.querySelector("#phone");
+                        if (phoneInput) {
+                            var iti = window.intlTelInput(phoneInput, {
+                                initialCountry: "uy",
+                                preferredCountries: ["uy", "ar", "br"],
+                                utilsScript: "https://cdn.jsdelivr.net/npm/intl-tel-input@21.2.6/build/js/utils.js",
+                                formatOnDisplay: true,
+                                autoPlaceholder: "aggressive"
+                            });
+
+                            phoneInput.addEventListener('change', function() {
+                                var fullNumber = iti.getNumber();
+                                phoneInput.value = fullNumber || this.value;
+                            });
+                        }
+
+                        document.querySelectorAll('.password-toggle').forEach(function(button) {
+                            button.addEventListener('click', function() {
+                                var targetId = button.getAttribute('data-target');
+                                var input = document.getElementById(targetId);
+                                if (!input) return;
+                                if (input.type === 'password') {
+                                    input.type = 'text';
+                                      button.textContent = '👁';
+                                    button.setAttribute('aria-label', 'Ocultar contraseña');
+                                } else {
+                                    input.type = 'password';
+                                    button.textContent = '👁';
+                                    button.setAttribute('aria-label', 'Mostrar contraseña');
+                                }
+                            });
                         });
                     });
                 </script>

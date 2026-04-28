@@ -131,7 +131,7 @@ $rango = obtenerRangoFechas($periodo);
                     <div class="actualizaciones-main">
                         <div class="section-actions">
                             <p>Consulta aquí todos los movimientos de consumo, ingreso y ajuste con sus observaciones.</p>
-                            <a href="dashboard.php" class="btn btn-secondary">Volver al Dashboard</a>
+                            <a href="dashboard.php" class="btn btn-secondary">Volver a silos</a>
                         </div>
                         
                         <?php if ($total_actualizaciones === 0): ?>

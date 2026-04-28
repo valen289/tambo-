@@ -54,19 +54,6 @@ async function requestApi(endpoint, init = {}) {
     return data;
 }
 
-// Registrar Uso
-function registrarUso(id, nombre, stockActual) {
-    document.getElementById('insumoId').value = id;
-    document.getElementById('insumoNombre').textContent = nombre;
-    document.getElementById('cantidad').max = stockActual;
-    document.getElementById('modalUso').style.display = 'flex';
-}
-
-function cerrarModal() {
-    document.getElementById('modalUso').style.display = 'none';
-    document.getElementById('formConsumo').reset();
-}
-
 function cerrarEditarModal() {
     document.getElementById('modalEditarInsumo').style.display = 'none';
     document.getElementById('formEditarInsumo').reset();
@@ -127,34 +114,6 @@ function ajustarGanado(cambio) {
     });
 }
 
-// Formulario de Consumo
-const formConsumo = document.getElementById('formConsumo');
-if (formConsumo) {
-    formConsumo.addEventListener('submit', function(e) {
-        e.preventDefault();
-
-        const formData = new FormData(this);
-        formData.append('usuario_id', '<?php echo $usuarioId; ?>');
-
-        requestApi('registrar_consumo.php', {
-            method: 'POST',
-            body: formData
-        })
-        .then(data => {
-            if (data.success) {
-                showToast('Consumo registrado correctamente', 'success');
-                cerrarModal();
-                location.reload();
-            } else {
-                showToast('Error: ' + data.message, 'error');
-            }
-        })
-        .catch(error => {
-            showToast('Error de red al registrar el consumo. ' + error.message, 'error');
-        });
-    });
-}
-
 function abrirModalNuevoInsumo() {
     const modal = document.getElementById('modalEditarInsumo');
     const form = document.getElementById('formEditarInsumo');
@@ -192,12 +151,13 @@ function editarInsumo(id) {
         const insumo = data.insumo;
         document.getElementById('editarInsumoId').value = insumo.id;
         document.getElementById('editarNombre').value = insumo.nombre;
+        document.getElementById('editarTipoInsumo').value = insumo.tipo_insumo || '';
         document.getElementById('editarUnidad').value = insumo.unidad;
         document.getElementById('editarCapacidad').value = insumo.capacidad_maxima;
         document.getElementById('editarStock').value = insumo.stock_actual;
         document.getElementById('editarMinimo').value = insumo.stock_minimo;
         document.getElementById('editarConsumo').value = insumo.consumo_promedio_diario;
-        document.getElementById('modalEditarTitulo').textContent = 'Editar Insumo';
+        document.getElementById('modalEditarTitulo').textContent = 'Editar Silo';
         document.getElementById('btnGuardarInsumo').textContent = 'Guardar';
         document.getElementById('btnEliminarInsumo').style.display = 'block';
 
@@ -264,12 +224,7 @@ if (formInsumo) {
 
 // Cerrar modal al hacer click fuera
 window.onclick = function(event) {
-    const modalUso = document.getElementById('modalUso');
     const modalEditar = document.getElementById('modalEditarInsumo');
-
-    if (event.target === modalUso) {
-        cerrarModal();
-    }
 
     if (event.target === modalEditar) {
         cerrarEditarModal();

@@ -165,13 +165,14 @@ switch ($accion) {
     case 'editar_insumo':
         $insumo_id = intval($_POST['insumo_id']);
         $nombre = trim($_POST['nombre'] ?? '');
+        $tipo_insumo = trim($_POST['tipo_insumo'] ?? '');
         $unidad = trim($_POST['unidad'] ?? '');
         $capacidad_maxima = floatval($_POST['capacidad_maxima'] ?? 0);
         $stock_actual = floatval($_POST['stock_actual'] ?? 0);
         $stock_minimo = floatval($_POST['stock_minimo'] ?? 0);
         $consumo_promedio_diario = floatval($_POST['consumo_promedio_diario'] ?? 0);
 
-        if (empty($nombre) || empty($unidad) || $capacidad_maxima <= 0 || $stock_minimo < 0 || $stock_actual < 0) {
+        if (empty($nombre) || empty($unidad) || empty($tipo_insumo) || $capacidad_maxima <= 0 || $stock_minimo < 0 || $stock_actual < 0) {
             echo json_encode(['success' => false, 'message' => 'Datos inválidos para guardar el insumo']);
             exit();
         }
@@ -183,8 +184,8 @@ switch ($accion) {
 
         if ($insumo_id <= 0) {
             // Crear nuevo insumo
-            $stmt = $conn->prepare("INSERT INTO insumos (nombre, unidad, capacidad_maxima, stock_actual, stock_minimo, consumo_promedio_diario, activo) VALUES (?, ?, ?, ?, ?, ?, TRUE)");
-            $stmt->bind_param("ssdddd", $nombre, $unidad, $capacidad_maxima, $stock_actual, $stock_minimo, $consumo_promedio_diario);
+            $stmt = $conn->prepare("INSERT INTO insumos (nombre, tipo_insumo, unidad, capacidad_maxima, stock_actual, stock_minimo, consumo_promedio_diario, activo) VALUES (?, ?, ?, ?, ?, ?, ?, TRUE)");
+            $stmt->bind_param("ssssddd", $nombre, $tipo_insumo, $unidad, $capacidad_maxima, $stock_actual, $stock_minimo, $consumo_promedio_diario);
             
             if ($stmt->execute()) {
                 echo json_encode(['success' => true, 'message' => 'Insumo creado correctamente']);
@@ -193,8 +194,8 @@ switch ($accion) {
             }
         } else {
             // Actualizar insumo existente
-            $stmt = $conn->prepare("UPDATE insumos SET nombre = ?, unidad = ?, capacidad_maxima = ?, stock_actual = ?, stock_minimo = ?, consumo_promedio_diario = ? WHERE id = ?");
-            $stmt->bind_param("ssddddi", $nombre, $unidad, $capacidad_maxima, $stock_actual, $stock_minimo, $consumo_promedio_diario, $insumo_id);
+            $stmt = $conn->prepare("UPDATE insumos SET nombre = ?, tipo_insumo = ?, unidad = ?, capacidad_maxima = ?, stock_actual = ?, stock_minimo = ?, consumo_promedio_diario = ? WHERE id = ?");
+            $stmt->bind_param("sssddddi", $nombre, $tipo_insumo, $unidad, $capacidad_maxima, $stock_actual, $stock_minimo, $consumo_promedio_diario, $insumo_id);
             
             if ($stmt->execute()) {
                 echo json_encode(['success' => true, 'message' => 'Insumo actualizado correctamente']);
