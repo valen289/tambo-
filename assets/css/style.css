@@ -559,13 +559,86 @@ header {
     border-radius: 50%;
     cursor: pointer;
     font-size: 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-dark);
 }
 
-.btn-icon-edit {
-    background: none;
-    border: none;
-    cursor: pointer;
-    font-size: 18px;
+.btn-icon:hover {
+    background: rgba(88, 129, 87, 0.1);
+}
+
+.btn-remove {
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    padding: 0;
+    background: rgba(127, 85, 57, 0.08);
+    color: var(--text-dark);
+    border-radius: 10px;
+    border: 1px solid rgba(43, 43, 43, 0.08);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-remove:hover {
+    background: rgba(127, 85, 57, 0.16);
+}
+
+.silo-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.silo-row {
+    display: grid;
+    grid-template-columns: minmax(240px, 1.8fr) minmax(150px, 1fr) auto;
+    gap: 1rem;
+    align-items: center;
+    padding: 16px 18px;
+    border-radius: 12px;
+    background: rgba(245, 247, 244, 0.98);
+    border: 1px solid rgba(43, 43, 43, 0.08);
+}
+
+.silo-row .silo-field {
+    width: 100%;
+}
+
+.silo-row .silo-field--select select,
+.silo-row .silo-field--quantity input {
+    width: 100%;
+}
+
+.silo-row .silo-field--select select,
+.silo-row .silo-field--quantity input {
+    min-height: 48px;
+}
+
+.silo-row .btn-remove {
+    align-self: center;
+    justify-self: end;
+}
+
+.silo-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 1rem;
+}
+
+@media (max-width: 860px) {
+    .silo-row {
+        grid-template-columns: 1fr;
+        align-items: stretch;
+    }
+
+    .silo-row .btn-remove {
+        justify-self: start;
+        width: 100%;
+    }
 }
 
 /* Forms */
@@ -577,6 +650,13 @@ header {
     display: block;
     margin-bottom: 5px;
     font-weight: 600;
+}
+
+.field-note {
+    margin-top: 0.35rem;
+    margin-bottom: 0.85rem;
+    color: rgba(43, 43, 43, 0.72);
+    font-size: 0.95rem;
 }
 
 .form-group input,
@@ -628,6 +708,10 @@ header {
     gap: 15px;
 }
 
+.form-full {
+    grid-column: 1 / -1;
+}
+
 .table {
     width: 100%;
     border-collapse: collapse;
@@ -648,6 +732,65 @@ header {
 
 .table tbody tr:nth-child(even) {
     background: rgba(88, 129, 87, 0.04);
+}
+
+.table-planilla th,
+.table-planilla td {
+    padding: 10px 12px;
+}
+
+.planilla-card {
+    border: 1px solid rgba(88, 129, 87, 0.15);
+    background: rgba(242, 248, 241, 0.9);
+    border-radius: 12px;
+    padding: 18px;
+    margin-bottom: 20px;
+}
+
+.planilla-top {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+}
+
+.planilla-top h3 {
+    margin-bottom: 0.3rem;
+    font-size: 1.15rem;
+}
+
+.planilla-meta,
+.planilla-summary span {
+    display: inline-block;
+    color: rgba(43, 43, 43, 0.72);
+    font-size: 0.95rem;
+}
+
+.planilla-top-right {
+    text-align: right;
+}
+
+.planilla-top-right span {
+    display: block;
+    color: rgba(43, 43, 43, 0.72);
+    font-size: 0.85rem;
+}
+
+.planilla-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.planilla-empty {
+    margin: 0;
+    padding: 16px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.8);
+    color: rgba(43, 43, 43, 0.8);
+    border: 1px solid rgba(43, 43, 43, 0.08);
 }
 
 .btn-small {
