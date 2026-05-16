@@ -9,6 +9,7 @@ $isUsuario = esUsuario();
 $isOperario = esOperario();
 $selectedSilos = $_POST['silo_id'] ?? [];
 $selectedCantidades = $_POST['cantidad'] ?? [];
+$vista = $_GET['vista'] ?? 'registrar';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['accion'] === 'registrar_consumo') {
     $lote_id = intval($_POST['lote_id'] ?? 0);
@@ -61,7 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
 
                 foreach ($registroItems as $item) {
                     if (!isset($stockMap[$item['insumo_id']])) {
-                        $errores[] = 'El silo seleccionado no está disponible.';
+                        $errores[] = 'El silo seleccionado no esta disponible.';
                         continue;
                     }
                     if ($item['cantidad'] > $stockMap[$item['insumo_id']]) {
@@ -143,60 +144,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
     }
 }
 
-$selectedLote = isset($lote_id) ? $lote_id : 0;
-$selectedFecha = htmlspecialchars(isset($fecha) ? $fecha : date('Y-m-d'));
-$selectedObservaciones = htmlspecialchars(isset($observaciones) ? $observaciones : '');
-
-$insumos_lote = [];
-if ($isOperario && $selectedLote > 0) {
-    $stmt = $conn->prepare("SELECT li.cantidad_requerida, i.nombre AS insumo_nombre, i.tipo_insumo, i.unidad, i.stock_actual
-        FROM lote_insumos li
-        JOIN insumos i ON li.insumo_id = i.id
-        WHERE li.lote_id = ? AND i.activo = TRUE
-        ORDER BY i.nombre");
-    $stmt->bind_param('i', $selectedLote);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    $insumos_lote = $result->fetch_all(MYSQLI_ASSOC);
-}
-
-$manualRows = [];
-if ($isUsuario) {
-    $selectedSilos = (array)$selectedSilos;
-    $selectedCantidades = (array)$selectedCantidades;
-
-    for ($i = 0; $i < max(count($selectedSilos), count($selectedCantidades)); $i++) {
-        $siloId = intval($selectedSilos[$i] ?? 0);
-        $cantidad = trim($selectedCantidades[$i] ?? '');
-        if ($siloId > 0 || $cantidad !== '') {
-            $manualRows[] = [
-                'silo_id' => $siloId,
-                'cantidad' => $cantidad,
-            ];
-        }
-    }
-
-    if (empty($manualRows)) {
-        $manualRows[] = ['silo_id' => 0, 'cantidad' => ''];
-    }
-}
-
 $lotesData = [];
 $lotes = $conn->query("SELECT id, nombre, tipo_animal, cantidad_animales, consumo_estimado_diario, observaciones FROM lotes WHERE activo = TRUE ORDER BY nombre");
 while ($row = $lotes->fetch_assoc()) {
     $lotesData[] = $row;
 }
+
 $insumos_data = [];
 $insumos = $conn->query("SELECT id, nombre, tipo_insumo, unidad, stock_actual FROM insumos WHERE activo = TRUE ORDER BY nombre");
 while ($row = $insumos->fetch_assoc()) {
     $insumos_data[] = $row;
 }
+
 $consumos = $conn->query("SELECT c.*, l.nombre AS lote_nombre, i.nombre AS insumo_nombre, i.tipo_insumo, u.nombre AS usuario_nombre
     FROM consumos c
     LEFT JOIN lotes l ON c.lote_id = l.id
     LEFT JOIN insumos i ON c.insumo_id = i.id
     LEFT JOIN usuarios u ON c.usuario_id = u.id
-    ORDER BY COALESCE(l.nombre, 'Sin lote') ASC, c.fecha DESC, c.hora DESC");
+    ORDER BY c.fecha DESC, c.hora DESC");
 
 $consumos_por_lote = [];
 while ($row = $consumos->fetch_assoc()) {
@@ -214,150 +179,225 @@ while ($row = $consumos->fetch_assoc()) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Consumos - SiCoDiEt</title>
     <link rel="stylesheet" href="assets/css/style.css">
+    <style>
+        .consumos-layout {
+            display: flex;
+            gap: 1.5rem;
+            min-height: calc(100vh - 120px);
+        }
+        .consumos-sidebar {
+            width: 220px;
+            flex-shrink: 0;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 1rem 0;
+            height: fit-content;
+            position: sticky;
+            top: 1rem;
+        }
+        .consumos-sidebar h3 {
+            padding: 0 1rem 0.75rem;
+            margin: 0;
+            font-size: 0.9rem;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid #eee;
+            margin-bottom: 0.5rem;
+        }
+        .sidebar-btn {
+            display: block;
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: none;
+            background: none;
+            text-align: left;
+            cursor: pointer;
+            font-size: 0.95rem;
+            color: #444;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+        .sidebar-btn:hover {
+            background: #f5f5f5;
+            color: #2e7d32;
+        }
+        .sidebar-btn.active {
+            background: #e8f5e9;
+            color: #2e7d32;
+            font-weight: 600;
+            border-left: 3px solid #4caf50;
+        }
+        .consumos-main {
+            flex: 1;
+            min-width: 0;
+        }
+        .vista-section {
+            display: none;
+        }
+        .vista-section.active {
+            display: block;
+        }
+    </style>
 </head>
 <body>
     <?php include 'includes/header.php'; ?>
 
     <div class="container">
-        <div class="card">
-            <div class="card-header">
-                <h2>Registrar Consumo</h2>
-            </div>
-            <div class="card-body">
-                <?php if ($mensaje): ?>
-                    <div class="alerta stock-bajo"><?php echo htmlspecialchars($mensaje); ?></div>
-                <?php endif; ?>
-                <?php if ($errores): ?>
-                    <div class="alerta stock-critico">
-                        <?php foreach ($errores as $error): ?>
-                            <p><?php echo htmlspecialchars($error); ?></p>
-                        <?php endforeach; ?>
-                    </div>
-                <?php endif; ?>
+        <div class="consumos-layout">
+            <aside class="consumos-sidebar">
+                <h3>Consumos</h3>
+                <a href="?vista=registrar" class="sidebar-btn <?php echo $vista === 'registrar' ? 'active' : ''; ?>">Registrar Consumo</a>
+                <a href="?vista=historial" class="sidebar-btn <?php echo $vista === 'historial' ? 'active' : ''; ?>">Historial de Consumo</a>
+            </aside>
 
-                <form method="post" class="form-grid">
-                    <input type="hidden" name="accion" value="registrar_consumo">
-                    <div class="form-group">
-                        <label>Lote</label>
-                        <select name="lote_id" id="loteSelect" required <?php echo $isOperario ? 'onchange="cargarInsumosLote()"' : ''; ?> >
-                            <option value="">Selecciona un lote</option>
-                            <?php foreach ($lotesData as $lote): ?>
-                                <option value="<?php echo intval($lote['id']); ?>" <?php echo $lote['id'] === $selectedLote ? 'selected' : ''; ?>><?php echo htmlspecialchars($lote['nombre']); ?></option>
-                            <?php endforeach; ?>
-                        </select>
+            <div class="consumos-main">
+                <?php if ($vista === 'registrar'): ?>
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Registrar Consumo</h2>
                     </div>
-
-                    <?php if ($isUsuario): ?>
-                        <div class="form-group form-full">
-                            <label>Silos y cantidades</label>
-                            <div id="manualSilosContainer">
-                                <?php foreach ($manualRows as $rowIndex => $manualRow): ?>
-                                    <div class="silo-row" style="display:flex;gap:0.75rem;align-items:flex-start;margin-bottom:0.75rem;flex-wrap:wrap;">
-                                        <select name="silo_id[]" required style="flex:1;min-width:220px;">
-                                            <option value="">Selecciona un silo</option>
-                                            <?php foreach ($insumos_data as $insumo): ?>
-                                                <option value="<?php echo intval($insumo['id']); ?>" <?php echo intval($insumo['id']) === intval($manualRow['silo_id']) ? 'selected' : ''; ?>><?php echo htmlspecialchars($insumo['nombre']); ?> (<?php echo htmlspecialchars($insumo['tipo_insumo']); ?>)</option>
-                                            <?php endforeach; ?>
-                                        </select>
-                                        <input type="number" step="0.01" min="0" name="cantidad[]" placeholder="Cantidad" value="<?php echo htmlspecialchars($manualRow['cantidad']); ?>" style="width:160px;" required>
-                                        <button type="button" class="btn btn-secondary" onclick="eliminarFila(this)" style="height:42px;">Eliminar</button>
-                                    </div>
+                    <div class="card-body">
+                        <?php if ($mensaje): ?>
+                            <div class="alerta stock-bajo"><?php echo htmlspecialchars($mensaje); ?></div>
+                        <?php endif; ?>
+                        <?php if ($errores): ?>
+                            <div class="alerta stock-critico">
+                                <?php foreach ($errores as $error): ?>
+                                    <p><?php echo htmlspecialchars($error); ?></p>
                                 <?php endforeach; ?>
                             </div>
-                            <button type="button" class="btn btn-primary" onclick="agregarFilaSilo()">Agregar silo</button>
-                        </div>
-                    <?php else: ?>
-                        <div class="form-group form-full">
-                            <div class="planilla-card">
-                                <div class="planilla-top">
-                                    <div>
-                                        <h3>Planilla de armado por lote</h3>
-                                        <p class="planilla-meta"><strong>Lote:</strong> <span id="loteNombre"></span></p>
-                                        <p class="planilla-meta"><strong>Tipo:</strong> <span id="loteTipo"></span> | <strong>Animales:</strong> <span id="loteAnimales"></span></p>
+                        <?php endif; ?>
+
+                        <form method="post" class="form-grid">
+                            <input type="hidden" name="accion" value="registrar_consumo">
+                            <div class="form-group">
+                                <label>Lote</label>
+                                <select name="lote_id" id="loteSelect" required <?php echo $isOperario ? 'onchange="cargarInsumosLote()"' : ''; ?>>
+                                    <option value="">Selecciona un lote</option>
+                                    <?php foreach ($lotesData as $lote): ?>
+                                        <option value="<?php echo intval($lote['id']); ?>"><?php echo htmlspecialchars($lote['nombre']); ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+
+                            <?php if ($isUsuario): ?>
+                                <div class="form-group form-full">
+                                    <label>Silos y cantidades</label>
+                                    <div id="manualSilosContainer">
+                                        <div class="silo-row" style="display:flex;gap:0.75rem;align-items:flex-start;margin-bottom:0.75rem;flex-wrap:wrap;">
+                                            <select name="silo_id[]" required style="flex:1;min-width:220px;">
+                                                <option value="">Selecciona un silo</option>
+                                                <?php foreach ($insumos_data as $insumo): ?>
+                                                    <option value="<?php echo intval($insumo['id']); ?>"><?php echo htmlspecialchars($insumo['nombre']); ?> (<?php echo htmlspecialchars($insumo['tipo_insumo']); ?>)</option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                            <input type="number" step="0.01" min="0" name="cantidad[]" placeholder="Cantidad" style="width:160px;" required>
+                                            <button type="button" class="btn btn-secondary" onclick="eliminarFila(this)" style="height:42px;">Eliminar</button>
+                                        </div>
                                     </div>
-                                    <div class="planilla-top-right">
-                                        <span>Consumo diario estimado</span>
-                                        <strong id="loteConsumoEstimado"></strong>
+                                    <button type="button" class="btn btn-primary" onclick="agregarFilaSilo()">Agregar silo</button>
+                                </div>
+                            <?php else: ?>
+                                <div class="form-group form-full">
+                                    <div class="planilla-card" id="planillaOperario" style="border: 2px solid #4caf50; background: #f1f8e9;">
+                                        <div class="planilla-top">
+                                            <div>
+                                                <h3 style="color: #2e7d32;">Planilla de armado - Lote seleccionado</h3>
+                                                <p class="planilla-meta"><strong>Lote:</strong> <span id="loteNombre">-</span></p>
+                                                <p class="planilla-meta"><strong>Tipo:</strong> <span id="loteTipo">-</span> | <strong>Animales:</strong> <span id="loteAnimales">-</span></p>
+                                            </div>
+                                            <div class="planilla-top-right">
+                                                <span>Consumo diario estimado</span>
+                                                <strong id="loteConsumoEstimado" style="font-size: 1.2em;">-</strong>
+                                            </div>
+                                        </div>
+                                        <div class="planilla-summary">
+                                            <span><strong>Observaciones:</strong> <span id="loteObservaciones">-</span></span>
+                                        </div>
+                                        <div id="insumosLoteContainer" style="display:none; margin-top: 1rem;">
+                                            <table class="table table-planilla" id="insumosLoteTable">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Silo</th>
+                                                        <th>Unidad</th>
+                                                        <th style="background: #e8f5e9;">Cantidad a retirar</th>
+                                                        <th>Stock disponible</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="insumosLoteBody"></tbody>
+                                            </table>
+                                        </div>
+                                        <p id="noInsumosMsg" class="planilla-empty" style="display:none;"></p>
+                                        <div id="instruccionesOperario" style="margin-top:1rem; padding: 1rem; background: #fff3e0; border-left: 4px solid #ff9800; border-radius: 4px;">
+                                            <strong>Instrucciones:</strong> Seleccione un lote para ver las cantidades que debe retirar de cada silo.
+                                        </div>
                                     </div>
                                 </div>
-                                <div class="planilla-summary">
-                                    <span><strong>Observaciones:</strong> <span id="loteObservaciones"></span></span>
+                            <?php endif; ?>
+
+                            <div class="form-group">
+                                <label>Fecha</label>
+                                <input type="date" name="fecha" value="<?php echo date('Y-m-d'); ?>" required>
+                            </div>
+                            <div class="form-group form-full">
+                                <label>Observaciones</label>
+                                <textarea name="observaciones" rows="3"></textarea>
+                            </div>
+                            <?php if ($isUsuario): ?>
+                                <div class="form-group form-full">
+                                    <button type="submit" class="btn btn-primary">Registrar Consumo</button>
                                 </div>
-                                <div id="insumosLoteContainer" style="display:none;">
-                                    <table class="table table-planilla" id="insumosLoteTable">
+                            <?php elseif ($isOperario): ?>
+                                <div class="form-group form-full" id="operarioConfirmBtn" style="display:none;">
+                                    <button type="submit" class="btn btn-primary" style="background: #4caf50; font-size: 1.1em; padding: 12px 24px;">
+                                        Confirmar que retire el material
+                                    </button>
+                                </div>
+                            <?php endif; ?>
+                        </form>
+                    </div>
+                </div>
+                <?php elseif ($vista === 'historial'): ?>
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Historial de Consumos</h2>
+                    </div>
+                    <div class="card-body">
+                        <?php if (empty($consumos_por_lote)): ?>
+                            <p>No hay consumos registrados aun.</p>
+                        <?php else: ?>
+                            <?php foreach ($consumos_por_lote as $loteNombre => $rows): ?>
+                                <div class="consumo-lote-group" style="margin-bottom: 2rem;">
+                                    <h3 style="margin-bottom: 0.75rem; padding-bottom: 0.5rem; border-bottom: 2px solid #4caf50;">Lote: <?php echo htmlspecialchars($loteNombre); ?></h3>
+                                    <table class="table">
                                         <thead>
                                             <tr>
+                                                <th>Fecha</th>
                                                 <th>Silo</th>
-                                                <th>Unidad</th>
-                                                <th>Cantidad a retirar</th>
-                                                <th>Stock disponible</th>
+                                                <th>Cantidad</th>
+                                                <th>Usuario</th>
+                                                <th>Observaciones</th>
                                             </tr>
                                         </thead>
-                                        <tbody id="insumosLoteBody"></tbody>
+                                        <tbody>
+                                            <?php foreach ($rows as $consumo): ?>
+                                                <tr>
+                                                    <td><?php echo htmlspecialchars($consumo['fecha'] . ' ' . $consumo['hora']); ?></td>
+                                                    <td><?php echo htmlspecialchars($consumo['insumo_nombre']); ?></td>
+                                                    <td><?php echo number_format($consumo['cantidad'], 2, ',', '.'); ?></td>
+                                                    <td><?php echo htmlspecialchars($consumo['usuario_nombre']); ?></td>
+                                                    <td><?php echo htmlspecialchars($consumo['observaciones']); ?></td>
+                                                </tr>
+                                            <?php endforeach; ?>
+                                        </tbody>
                                     </table>
                                 </div>
-                                <p id="noInsumosMsg" class="planilla-empty" style="display:none;"></p>
-                                <p style="margin-top:1rem;color:#555;">Revise las cantidades indicadas y retire el material de cada silo. Cuando termine, presione "Confirmar armado".</p>
-                            </div>
-                        </div>
-                    <?php endif; ?>
-
-                    <div class="form-group">
-                        <label>Fecha</label>
-                        <input type="date" name="fecha" value="<?php echo $selectedFecha; ?>" required>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
                     </div>
-                    <div class="form-group form-full">
-                        <label>Observaciones</label>
-                        <textarea name="observaciones" rows="3"><?php echo $selectedObservaciones; ?></textarea>
-                    </div>
-                    <?php if ($isUsuario): ?>
-                        <div class="form-group form-full">
-                            <button type="submit" class="btn btn-primary">Registrar Consumo</button>
-                        </div>
-                    <?php elseif ($isOperario): ?>
-                        <div class="form-group form-full" id="operarioConfirmBtn" style="display:none;">
-                            <button type="submit" class="btn btn-primary">Confirmar armado completado</button>
-                        </div>
-                    <?php endif; ?>
-                </form>
-            </div>
-        </div>
-
-        <div class="card">
-            <div class="card-header">
-                <h2>Historial de Consumos</h2>
-            </div>
-            <div class="card-body">
-                <?php if (empty($consumos_por_lote)): ?>
-                    <p>No hay consumos registrados aún.</p>
-                <?php else: ?>
-                    <?php foreach ($consumos_por_lote as $loteNombre => $rows): ?>
-                        <div class="consumo-lote-group" style="margin-bottom: 1.5rem;">
-                            <h3 style="margin-bottom: 0.75rem;">Lote: <?php echo htmlspecialchars($loteNombre); ?></h3>
-                            <table class="table">
-                                <thead>
-                                    <tr>
-                                        <th>Fecha</th>
-                                        <th>Silo</th>
-                                        <th>Cantidad</th>
-                                        <th>Usuario</th>
-                                        <th>Observaciones</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php foreach ($rows as $consumo): ?>
-                                        <tr>
-                                            <td><?php echo htmlspecialchars($consumo['fecha'] . ' ' . $consumo['hora']); ?></td>
-                                            <td><?php echo htmlspecialchars($consumo['insumo_nombre']); ?></td>
-                                            <td><?php echo number_format($consumo['cantidad'], 2, ',', '.'); ?></td>
-                                            <td><?php echo htmlspecialchars($consumo['usuario_nombre']); ?></td>
-                                            <td><?php echo htmlspecialchars($consumo['observaciones']); ?></td>
-                                        </tr>
-                                    <?php endforeach; ?>
-                                </tbody>
-                            </table>
-                        </div>
-                    <?php endforeach; ?>
+                </div>
                 <?php endif; ?>
             </div>
         </div>
@@ -403,19 +443,23 @@ while ($row = $consumos->fetch_assoc()) {
             var container = document.getElementById('insumosLoteContainer');
             var tableBody = document.getElementById('insumosLoteBody');
             var noInsumosMsg = document.getElementById('noInsumosMsg');
-            var loteInfo = document.getElementById('loteInfo');
             var loteNombre = document.getElementById('loteNombre');
             var loteTipo = document.getElementById('loteTipo');
             var loteAnimales = document.getElementById('loteAnimales');
             var loteConsumoEstimado = document.getElementById('loteConsumoEstimado');
             var loteObservaciones = document.getElementById('loteObservaciones');
             var confirmBtn = document.getElementById('operarioConfirmBtn');
+            var instrucciones = document.getElementById('instruccionesOperario');
 
             if (!loteId) {
                 if (container) container.style.display = 'none';
                 if (noInsumosMsg) noInsumosMsg.style.display = 'none';
-                if (loteInfo) loteInfo.style.display = 'none';
                 if (confirmBtn) confirmBtn.style.display = 'none';
+                if (instrucciones) {
+                    instrucciones.innerHTML = '<strong>Instrucciones:</strong> Seleccione un lote para ver las cantidades que debe retirar de cada silo.';
+                    instrucciones.style.background = '#fff3e0';
+                    instrucciones.style.borderLeftColor = '#ff9800';
+                }
                 return;
             }
 
@@ -423,13 +467,12 @@ while ($row = $consumos->fetch_assoc()) {
                 return item.id == loteId;
             });
 
-            if (loteSeleccionado && loteInfo) {
+            if (loteSeleccionado) {
                 loteNombre.textContent = loteSeleccionado.nombre;
                 loteTipo.textContent = loteSeleccionado.tipo_animal || 'N/A';
                 loteAnimales.textContent = loteSeleccionado.cantidad_animales || '0';
-                loteConsumoEstimado.textContent = parseFloat(loteSeleccionado.consumo_estimado_diario).toFixed(2).replace('.', ',');
+                loteConsumoEstimado.textContent = parseFloat(loteSeleccionado.consumo_estimado_diario || 0).toFixed(2).replace('.', ',');
                 loteObservaciones.textContent = loteSeleccionado.observaciones || '-';
-                loteInfo.style.display = 'block';
             }
 
             if (!tableBody) return;
@@ -447,14 +490,19 @@ while ($row = $consumos->fetch_assoc()) {
                             row.innerHTML = `
                                 <td>${insumo.insumo_nombre} (${insumo.tipo_insumo})</td>
                                 <td>${insumo.unidad}</td>
-                                <td style="font-weight:bold;color:#2e7d32;">${cantidadRequerida.toFixed(2).replace('.', ',')}</td>
-                                <td style="color:${stockOk ? '#555' : '#c62828'};">${stockActual.toFixed(2).replace('.', ',')} ${!stockOk ? '⚠ Stock insuficiente' : ''}</td>
+                                <td style="font-weight:bold;color:#2e7d32; font-size: 1.1em;">${cantidadRequerida.toFixed(2).replace('.', ',')}</td>
+                                <td style="color:${stockOk ? '#555' : '#c62828'};">${stockActual.toFixed(2).replace('.', ',')} ${!stockOk ? 'Stock insuficiente' : ''}</td>
                             `;
                             tableBody.appendChild(row);
                         });
                         if (container) container.style.display = 'block';
                         if (noInsumosMsg) noInsumosMsg.style.display = 'none';
                         if (confirmBtn) confirmBtn.style.display = 'block';
+                        if (instrucciones) {
+                            instrucciones.innerHTML = '<strong>Retire el material de cada silo segun las cantidades indicadas arriba. Cuando termine, presione el boton verde para confirmar.</strong>';
+                            instrucciones.style.background = '#e8f5e9';
+                            instrucciones.style.borderLeftColor = '#4caf50';
+                        }
                     } else {
                         if (container) container.style.display = 'none';
                         if (noInsumosMsg) {
@@ -462,16 +510,26 @@ while ($row = $consumos->fetch_assoc()) {
                             noInsumosMsg.style.display = 'block';
                         }
                         if (confirmBtn) confirmBtn.style.display = 'none';
+                        if (instrucciones) {
+                            instrucciones.innerHTML = '<strong>Este lote no tiene silos asociados. El usuario debe asociar silos al lote desde la seccion de lotes.</strong>';
+                            instrucciones.style.background = '#ffebee';
+                            instrucciones.style.borderLeftColor = '#f44336';
+                        }
                     }
                 })
                 .catch(error => {
                     console.error('Error cargando insumos:', error);
                     if (container) container.style.display = 'none';
                     if (noInsumosMsg) {
-                        noInsumosMsg.textContent = 'No se pudo cargar la información del lote.';
+                        noInsumosMsg.textContent = 'No se pudo cargar la informacion del lote.';
                         noInsumosMsg.style.display = 'block';
                     }
                     if (confirmBtn) confirmBtn.style.display = 'none';
+                    if (instrucciones) {
+                        instrucciones.innerHTML = '<strong>Error al cargar la informacion. Intente nuevamente.</strong>';
+                        instrucciones.style.background = '#ffebee';
+                        instrucciones.style.borderLeftColor = '#f44336';
+                    }
                 });
         }
         <?php endif; ?>

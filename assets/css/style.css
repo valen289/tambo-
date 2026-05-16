@@ -534,12 +534,12 @@ header {
 }
 
 .btn-secondary {
-    background: var(--brown);
+    background: var(--accent);
     color: var(--surface);
 }
 
 .btn-secondary:hover {
-    background: var(--brown-dark);
+    background: var(--accent-dark);
 }
 
 .btn-danger {
@@ -1090,4 +1090,94 @@ header {
         flex: 1 1 calc(50% - 4px);
         min-width: 80px;
     }
+}
+
+/* Editar silos en lotes */
+.silos-edit-card {
+    background: #f9faf8;
+    border: 1px solid rgba(88, 129, 87, 0.2);
+    border-radius: 10px;
+    padding: 20px;
+    margin-top: 15px;
+}
+
+.silos-edit-card .silo-row {
+    background: #fff;
+    border: 1px solid rgba(88, 129, 87, 0.15);
+    margin-bottom: 12px;
+    padding: 14px 16px;
+    border-radius: 8px;
+}
+
+.silos-edit-card .silo-row:hover {
+    border-color: var(--accent);
+    box-shadow: 0 2px 8px rgba(88, 129, 87, 0.1);
+}
+
+.silos-edit-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 15px;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.silos-edit-actions .btn {
+    margin-top: 0;
+}
+
+.btn-cancel {
+    background: transparent;
+    color: var(--accent);
+    border: 2px solid var(--accent);
+}
+
+.btn-cancel:hover {
+    background: var(--accent);
+    color: white;
+}
+
+.lote-card {
+    border: 1px solid rgba(88, 129, 87, 0.15);
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+    background: #fafcf9;
+    transition: box-shadow 0.2s;
+}
+
+.lote-card:hover {
+    box-shadow: 0 4px 12px rgba(88, 129, 87, 0.1);
+}
+
+.lote-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 15px;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.lote-header h3 {
+    margin: 0;
+    font-size: 1.2rem;
+    color: var(--accent-dark);
+}
+
+.lote-header .btn-group {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.lote-meta {
+    color: rgba(43, 43, 43, 0.7);
+    font-size: 0.9rem;
+    margin-bottom: 12px;
+}
+
+.lote-meta strong {
+    color: var(--text-dark);
 }
