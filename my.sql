@@ -1,4 +1,4 @@
--- Creación de la base de datos
+
 CREATE DATABASE gestion_tambo CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE gestion_tambo;
 
@@ -158,3 +158,25 @@ CREATE TABLE IF NOT EXISTS consumos (
 ALTER TABLE usuarios
 ADD COLUMN IF NOT EXISTS email VARCHAR(150) NULL AFTER password,
 ADD COLUMN IF NOT EXISTS telefono VARCHAR(30) NULL AFTER email;
+
+-- Tabla para asociar lotes con insumos y cantidades requeridas
+CREATE TABLE IF NOT EXISTS lote_insumos (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    lote_id INT NOT NULL,
+    insumo_id INT NOT NULL,
+    cantidad_requerida DECIMAL(10,2) NOT NULL,
+    FOREIGN KEY (lote_id) REFERENCES lotes(id) ON DELETE CASCADE,
+    FOREIGN KEY (insumo_id) REFERENCES insumos(id) ON DELETE CASCADE
+);
+
+-- Lotes de ejemplo
+INSERT INTO lotes (nombre, tipo_animal, cantidad_animales, consumo_estimado_diario, observaciones) VALUES
+('Lote A - Vacas Lechera', 'Vaca Lechera', 50, 150.00, 'Lote principal de vacas lecheras'),
+('Lote B - Terneros', 'Ternero', 20, 50.00, 'Lote de terneros jóvenes');
+
+-- Asociaciones lote-insumo de ejemplo
+INSERT INTO lote_insumos (lote_id, insumo_id, cantidad_requerida) VALUES
+(1, 1, 100.00), -- Lote A: Maíz en Grano
+(1, 3, 200.00), -- Lote A: Silo de Maíz
+(2, 2, 30.00),  -- Lote B: Soja
+(2, 4, 10.00);  -- Lote B: Alfalfa

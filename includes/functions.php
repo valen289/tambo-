@@ -291,34 +291,94 @@ function smtpEnviarCorreo($to, $subject, $body, $fromEmail, $fromName) {
 function enviarCorreo($destinatario, $asunto, $mensaje) {
     $fromEmail = defined('SMTP_FROM_EMAIL') && SMTP_FROM_EMAIL ? SMTP_FROM_EMAIL : 'no-reply@tambo.local';
     $fromName = defined('SMTP_FROM_NAME') && SMTP_FROM_NAME ? SMTP_FROM_NAME : 'SiCoDiEt';
+    $useSmtp = defined('SMTP_HOST') && SMTP_HOST && defined('SMTP_USER') && SMTP_USER && defined('SMTP_PASS') && SMTP_PASS
+        && SMTP_USER !== 'tu-email@gmail.com' && SMTP_PASS !== 'tu-app-password';
 
-    if (defined('SMTP_HOST') && SMTP_HOST && defined('SMTP_USER') && SMTP_USER && defined('SMTP_PASS') && SMTP_PASS) {
+    if ($useSmtp) {
         $enviado = smtpEnviarCorreo($destinatario, $asunto, $mensaje, $fromEmail, $fromName);
         if ($enviado) {
             return true;
         }
     }
 
-    $cabeceras = "From: {$fromName} <{$fromEmail}>\r\n";
-    $cabeceras .= "Reply-To: {$fromEmail}\r\n";
-    $cabeceras .= "Content-Type: text/plain; charset=UTF-8\r\n";
-    $mailResult = mail($destinatario, $asunto, $mensaje, $cabeceras);
-    if (!$mailResult) {
-        error_log("PHP mail failed for {$destinatario}");
+    if (defined('MAIL_FALLBACK') && MAIL_FALLBACK) {
+        $cabeceras = "From: {$fromName} <{$fromEmail}>\r\n";
+        $cabeceras .= "Reply-To: {$fromEmail}\r\n";
+        $cabeceras .= "Content-Type: text/plain; charset=UTF-8\r\n";
+        $mailResult = @mail($destinatario, $asunto, $mensaje, $cabeceras);
+        if (!$mailResult) {
+            error_log("PHP mail failed for {$destinatario}");
+        }
+
+        return $mailResult;
     }
 
-    return $mailResult;
+    return false;
+}
+
+function obtenerConsumoPromedioDiarioPorInsumo($conn, $insumo_id, $dias = 30) {
+    $stmt = $conn->prepare("SELECT SUM(cantidad) AS total_consumo, MIN(fecha) AS fecha_min, MAX(fecha) AS fecha_max FROM consumos WHERE insumo_id = ? AND fecha >= DATE_SUB(CURDATE(), INTERVAL ? DAY)");
+    $stmt->bind_param('ii', $insumo_id, $dias);
+    $stmt->execute();
+    $resultado = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+
+    if (!empty($resultado['total_consumo']) && !empty($resultado['fecha_min']) && !empty($resultado['fecha_max'])) {
+        $diasTotales = max(1, floor((strtotime($resultado['fecha_max']) - strtotime($resultado['fecha_min'])) / 86400) + 1);
+        return floatval($resultado['total_consumo'] / $diasTotales);
+    }
+
+    $stmt = $conn->prepare("SELECT SUM(cantidad) AS total_consumo, MIN(fecha) AS fecha_min, MAX(fecha) AS fecha_max FROM consumo_diario WHERE insumo_id = ? AND tipo_movimiento = 'consumo'");
+    $stmt->bind_param('i', $insumo_id);
+    $stmt->execute();
+    $resultado = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+
+    if (!empty($resultado['total_consumo']) && !empty($resultado['fecha_min']) && !empty($resultado['fecha_max'])) {
+        $diasTotales = max(1, floor((strtotime($resultado['fecha_max']) - strtotime($resultado['fecha_min'])) / 86400) + 1);
+        return floatval($resultado['total_consumo'] / $diasTotales);
+    }
+
+    return 0;
+}
+
+function puedeEnviarAlertaCritica($insumo) {
+    if (!defined('ALERTA_CRITICA_ENVIO_HORAS') || ALERTA_CRITICA_ENVIO_HORAS <= 0) {
+        return true;
+    }
+
+    if (empty($insumo['ultimo_alerta_critica'])) {
+        return true;
+    }
+
+    $ultimaAlerta = strtotime($insumo['ultimo_alerta_critica']);
+    if ($ultimaAlerta === false) {
+        return true;
+    }
+
+    return (time() - $ultimaAlerta) >= ALERTA_CRITICA_ENVIO_HORAS * 3600;
+}
+
+function registrarHistoricoAlerta($conn, $insumo_id, $tipo, $mensaje) {
+    $stmt = $conn->prepare("INSERT INTO alertas (insumo_id, tipo, mensaje) VALUES (?, ?, ?)");
+    if (!$stmt) {
+        return false;
+    }
+    $stmt->bind_param('iss', $insumo_id, $tipo, $mensaje);
+    $result = $stmt->execute();
+    $stmt->close();
+    return $result;
 }
 
 /**
  * Envía una alerta de stock bajo para silo de kilos.
  */
-function notificarStockBajo($conn, $insumo_id, $usuario_id) {
+function notificarStockBajo($conn, $insumo_id, $usuario_id, $consumoPromedioDiario = null) {
     if (!$insumo_id || !$usuario_id) {
         return false;
     }
 
-    $stmt = $conn->prepare("SELECT nombre, tipo_insumo, unidad, stock_actual, stock_minimo, consumo_promedio_diario FROM insumos WHERE id = ?");
+    $stmt = $conn->prepare("SELECT nombre, tipo_insumo, unidad, stock_actual, capacidad_maxima, stock_minimo, consumo_promedio_diario, ultimo_alerta_critica FROM insumos WHERE id = ?");
     $stmt->bind_param("i", $insumo_id);
     $stmt->execute();
     $insumo = $stmt->get_result()->fetch_assoc();
@@ -327,17 +387,26 @@ function notificarStockBajo($conn, $insumo_id, $usuario_id) {
         return false;
     }
 
-    $esSiloKg = stripos($insumo['tipo_insumo'], 'silo') !== false || stripos($insumo['nombre'], 'silo') !== false;
-    $minimoSuperado = $insumo['stock_actual'] <= $insumo['stock_minimo'];
-    $diasRestantes = null;
-    $consumoDisponible = !empty($insumo['consumo_promedio_diario']) && $insumo['consumo_promedio_diario'] > 0;
-
-    if ($consumoDisponible) {
-        $diasRestantes = $insumo['stock_actual'] / $insumo['consumo_promedio_diario'];
+    $porcentajeStock = $insumo['capacidad_maxima'] > 0 ? ($insumo['stock_actual'] / $insumo['capacidad_maxima']) * 100 : 0;
+    if (!defined('STOCK_ALERTA_CRITICA_PORCENTAJE')) {
+        define('STOCK_ALERTA_CRITICA_PORCENTAJE', 20);
+    }
+    if ($porcentajeStock >= STOCK_ALERTA_CRITICA_PORCENTAJE) {
+        return false;
     }
 
-    if (!$minimoSuperado && (!$esSiloKg || $diasRestantes === null || $diasRestantes > 3)) {
+    if (!puedeEnviarAlertaCritica($insumo)) {
         return false;
+    }
+
+    if ($consumoPromedioDiario === null) {
+        $consumoPromedioDiario = !empty($insumo['consumo_promedio_diario']) ? floatval($insumo['consumo_promedio_diario']) : 0;
+    }
+
+    $diasRestantes = null;
+    $consumoDisponible = $consumoPromedioDiario > 0;
+    if ($consumoDisponible) {
+        $diasRestantes = $insumo['stock_actual'] / $consumoPromedioDiario;
     }
 
     $stmt = $conn->prepare("SELECT nombre, email, telefono FROM usuarios WHERE id = ?");
@@ -350,21 +419,19 @@ function notificarStockBajo($conn, $insumo_id, $usuario_id) {
     }
 
     $mensaje = "Hola {$usuario['nombre']},\n\n";
-    $mensaje .= "El silo '{$insumo['nombre']}' ({$insumo['tipo_insumo']}) tiene {$insumo['stock_actual']} {$insumo['unidad']} disponibles.\n";
-
-    if ($minimoSuperado) {
-        $mensaje .= "El stock actual está por debajo del mínimo definido de {$insumo['stock_minimo']} {$insumo['unidad']}.\n";
-    }
+    $mensaje .= "El silo '{$insumo['nombre']}' ({$insumo['tipo_insumo']}) está en estado crítico.\n";
+    $mensaje .= "Stock actual: {$insumo['stock_actual']} {$insumo['unidad']} de {$insumo['capacidad_maxima']} {$insumo['unidad']}.\n";
 
     if ($consumoDisponible && $diasRestantes !== null) {
-        $diasRestantesRedondeados = ceil($diasRestantes);
-        $mensaje .= "Con el consumo promedio estimado de {$insumo['consumo_promedio_diario']} {$insumo['unidad']}/día, quedan aproximadamente {$diasRestantesRedondeados} día(s) de stock.\n";
-        $asunto = "Alerta de stock bajo: quedan {$diasRestantesRedondeados} días de {$insumo['nombre']}";
+        $diasRestantesRedondeados = max(0, ceil($diasRestantes));
+        $mensaje .= "Quedan aproximadamente {$diasRestantesRedondeados} día(s) de consumo.\n";
+        $asunto = "Alerta crítica: quedan {$diasRestantesRedondeados} días de {$insumo['nombre']}";
     } else {
-        $asunto = "Alerta de stock bajo: {$insumo['nombre']} está por debajo del mínimo";
+        $mensaje .= "El consumo diario no está disponible, por favor carga histórico de consumos para estimar los días restantes.\n";
+        $asunto = "Alerta crítica: {$insumo['nombre']} requiere reposición";
     }
 
-    $mensaje .= "Por favor, reponga el silo cuanto antes para evitar quedarse sin stock.\n\n";
+    $mensaje .= "Por favor reponga este silo cuanto antes para evitar quedarse sin stock.\n\n";
     $mensaje .= "Saludos,\nEquipo SiCoDiEt";
 
     $enviadoEmail = false;
@@ -380,7 +447,7 @@ function notificarStockBajo($conn, $insumo_id, $usuario_id) {
     if (!empty($usuario['telefono']) && defined('SMS_GATEWAY_DOMAIN') && SMS_GATEWAY_DOMAIN) {
         $smsDestino = preg_replace('/[^0-9]/', '', $usuario['telefono']);
         if (!empty($smsDestino)) {
-            $smsAsunto = 'SMS: Alerta de stock bajo';
+            $smsAsunto = 'SMS: Alerta crítica de stock';
             $smsEmail = $smsDestino . '@' . SMS_GATEWAY_DOMAIN;
             $enviadoSms = enviarCorreo($smsEmail, $smsAsunto, $mensaje);
             if (!$enviadoSms) {
@@ -389,9 +456,18 @@ function notificarStockBajo($conn, $insumo_id, $usuario_id) {
         }
     }
 
-    if (!$enviadoEmail && !$enviadoSms) {
-        error_log("No se envió ninguna alerta de stock bajo para usuario ID {$usuario_id}. Email: {$usuario['email']}, Teléfono: {$usuario['telefono']}");
+    $resultadoEnviado = $enviadoEmail || $enviadoSms;
+    if ($resultadoEnviado) {
+        $stmt = $conn->prepare("UPDATE insumos SET ultimo_alerta_critica = NOW() WHERE id = ?");
+        $stmt->bind_param('i', $insumo_id);
+        $stmt->execute();
+        $stmt->close();
+        registrarHistoricoAlerta($conn, $insumo_id, 'stock_critico', $mensaje);
     }
 
-    return $enviadoEmail || $enviadoSms;
+    if (!$resultadoEnviado) {
+        error_log("No se envió ninguna alerta crítica para insumo ID {$insumo_id}. Email: {$usuario['email']}, Teléfono: {$usuario['telefono']}");
+    }
+
+    return $resultadoEnviado;
 }

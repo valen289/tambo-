@@ -1,40 +1,61 @@
 <?php
 require_once 'includes/db.php';
 require_once 'includes/auth.php';
+require_once 'includes/functions.php';
 verificarSesion();
 
-// Obtener insumos con alertas
-$insumos = $conn->query("
-    SELECT i.*, 
-           CASE 
-               WHEN i.stock_actual <= i.stock_minimo * 0.5 THEN 'critico'
-               WHEN i.stock_actual <= i.stock_minimo THEN 'bajo'
-               ELSE 'normal'
-           END as estado_alerta
-    FROM insumos i 
-    WHERE i.activo = TRUE
-    ORDER BY 
-        CASE 
-            WHEN i.stock_actual <= i.stock_minimo * 0.5 THEN 1
-            WHEN i.stock_actual <= i.stock_minimo THEN 2
-            ELSE 3
-        END,
-        i.nombre
-");
+// Obtener insumos activos y calcular estado según porcentaje de stock y consumo real
+$insumos = $conn->query("SELECT i.* FROM insumos i WHERE i.activo = TRUE ORDER BY i.nombre");
 
-// Calcular días restantes y consumo promedio
 $lista_insumos = [];
 while ($insumo = $insumos->fetch_assoc()) {
-    if ($insumo['consumo_promedio_diario'] > 0) {
-        $insumo['dias_restantes'] = floor($insumo['stock_actual'] / $insumo['consumo_promedio_diario']);
-    } else {
-        $insumo['dias_restantes'] = 999;
+    $capacidad = floatval($insumo['capacidad_maxima']);
+    $stock_actual = floatval($insumo['stock_actual']);
+    $stock_porcentaje = $capacidad > 0 ? ($stock_actual / $capacidad) * 100 : 0;
+    $stock_porcentaje = min(100, max(0, $stock_porcentaje));
+
+    $consumo_promedio_diario = obtenerConsumoPromedioDiarioPorInsumo($conn, intval($insumo['id']));
+    if ($consumo_promedio_diario <= 0 && !empty($insumo['consumo_promedio_diario'])) {
+        $consumo_promedio_diario = floatval($insumo['consumo_promedio_diario']);
     }
-    
-    // Detectar si es silo en kg con <= 1000 kilos
-    $esSiloKg = stripos($insumo['nombre'], 'silo') !== false && strtolower(trim($insumo['unidad'])) === 'kg';
-    $insumo['alerta_1000_kilos'] = $esSiloKg && $insumo['stock_actual'] <= 1000;
-    
+
+    $dias_restantes = null;
+    if ($consumo_promedio_diario > 0) {
+        $dias_restantes = $stock_actual / $consumo_promedio_diario;
+    }
+
+    if (!defined('STOCK_ALERTA_MEDIA_PORCENTAJE')) {
+        define('STOCK_ALERTA_MEDIA_PORCENTAJE', 50);
+    }
+    if (!defined('STOCK_ALERTA_CRITICA_PORCENTAJE')) {
+        define('STOCK_ALERTA_CRITICA_PORCENTAJE', 20);
+    }
+
+    if ($stock_porcentaje <= STOCK_ALERTA_CRITICA_PORCENTAJE) {
+        $estado_alerta = 'critico';
+        if ($dias_restantes !== null) {
+            $mensaje_alerta = 'Stock crítico – quedan ' . max(0, ceil($dias_restantes)) . ' días de consumo';
+        } else {
+            $mensaje_alerta = 'Stock crítico – consumo diario no estimado';
+        }
+    } elseif ($stock_porcentaje <= STOCK_ALERTA_MEDIA_PORCENTAJE) {
+        $estado_alerta = 'media';
+        $mensaje_alerta = 'Stock en nivel medio – considerar reposición';
+    } else {
+        $estado_alerta = 'normal';
+        $mensaje_alerta = '';
+    }
+
+    $insumo['stock_porcentaje'] = $stock_porcentaje;
+    $insumo['consumo_promedio_diario'] = $consumo_promedio_diario;
+    $insumo['dias_restantes'] = $dias_restantes;
+    $insumo['estado_alerta'] = $estado_alerta;
+    $insumo['mensaje_alerta'] = $mensaje_alerta;
+
+    if ($estado_alerta === 'critico') {
+        notificarStockBajo($conn, intval($insumo['id']), intval($_SESSION['usuario_id']), $consumo_promedio_diario);
+    }
+
     $lista_insumos[] = $insumo;
 }
 ?>
@@ -104,19 +125,24 @@ while ($insumo = $insumos->fetch_assoc()) {
                 </div>
                 
                 <div class="card-body">
-                    <div class="stock-info">
+                        <div class="stock-info">
                         <span class="stock-actual"><?php echo number_format($insumo['stock_actual'], 0, ',', '.'); ?></span>
-                        <span class="stock-total">/<?php echo number_format($insumo['capacidad_maxima'], 0, ',', '.'); ?> <?php echo $insumo['unidad']; ?></span>
+                        <span class="stock-total">/<?php echo number_format($insumo['capacidad_maxima'], 0, ',', '.'); ?> <?php echo htmlspecialchars($insumo['unidad'] ?? ''); ?></span>
                     </div>
-                    
+
+                    <div class="consumo-info">
+                        <div><span>Porcentaje</span><strong><?php echo number_format($insumo['stock_porcentaje'], 0); ?>%</strong></div>
+                        <div><span>Días restantes</span><strong><?php echo $insumo['dias_restantes'] !== null ? max(0, ceil($insumo['dias_restantes'])) : 'N/E'; ?></strong></div>
+                    </div>
+
                     <div class="progress-bar">
-                        <div class="progress-fill" style="width: <?php echo min(100, max(0, ($insumo['stock_actual'] / $insumo['capacidad_maxima']) * 100)); ?>%"></div>
+                        <div class="progress-fill" style="width: <?php echo number_format($insumo['stock_porcentaje'], 2, '.', ''); ?>%"></div>
                     </div>
-                    
-                    <?php if ($insumo['estado_alerta'] === 'bajo'): ?>
-                    <div class="alerta stock-bajo">Stock bajo</div>
+
+                    <?php if ($insumo['estado_alerta'] === 'media'): ?>
+                        <div class="alerta stock-media"><?php echo htmlspecialchars($insumo['mensaje_alerta']); ?></div>
                     <?php elseif ($insumo['estado_alerta'] === 'critico'): ?>
-                    <div class="alerta stock-critico">Stock crítico</div>
+                        <div class="alerta stock-critico"><?php echo htmlspecialchars($insumo['mensaje_alerta']); ?></div>
                     <?php endif; ?>
                 </div>
             </div>

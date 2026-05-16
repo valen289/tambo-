@@ -10,6 +10,13 @@ define('SMTP_PASS', 'tu-app-password');
 define('SMTP_FROM_EMAIL', 'no-reply@tambo.local');
 define('SMTP_FROM_NAME', 'SiCoDiEt');
 
+define('MAIL_FALLBACK', false); // Cambia a true solo si tienes un servidor de correo local bien configurado.
+
+// Umbrales de alerta para stock.
+define('STOCK_ALERTA_MEDIA_PORCENTAJE', 50);
+define('STOCK_ALERTA_CRITICA_PORCENTAJE', 20);
+define('ALERTA_CRITICA_ENVIO_HORAS', 24);
+
 // Si quieres enviar SMS vía email-to-SMS, configura aquí el dominio de pasarela.
 // Ejemplo: 'txt.att.net' o 'sms.movistar.com'
 define('SMS_GATEWAY_DOMAIN', '');

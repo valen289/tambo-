@@ -392,14 +392,19 @@ header {
     border-left: 5px solid var(--accent);
 }
 
-.insumo-card.estado-bajo {
-    border-left-color: var(--bg-soft);
-    background: rgba(211,237,223,0.95);
+.insumo-card.estado-normal {
+    border-left-color: #2ecc71;
+    background: rgba(46, 204, 113, 0.08);
+}
+
+.insumo-card.estado-media {
+    border-left-color: #f1c40f;
+    background: rgba(241, 196, 15, 0.12);
 }
 
 .insumo-card.estado-critico {
-    border-left-color: var(--bg-mid);
-    background: rgba(199,227,212,0.96);
+    border-left-color: #e74c3c;
+    background: rgba(231, 76, 60, 0.12);
 }
 
 .insumo-card:hover {
@@ -442,12 +447,12 @@ header {
     transition: width 0.3s;
 }
 
-.estado-bajo .progress-fill {
-    background: var(--accent-soft);
+.estado-media .progress-fill {
+    background: #f1c40f;
 }
 
 .estado-critico .progress-fill {
-    background: var(--bg-mid);
+    background: #e74c3c;
 }
 
 /* Consumo Info */
@@ -475,24 +480,23 @@ header {
     margin: 10px 0;
 }
 
+.stock-media {
+    background: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeeba;
+}
+
+.stock-critico {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+    animation: pulse 1.5s infinite;
+}
+
 .stock-bajo {
     background: var(--bg-soft);
     color: var(--text-light);
 }
-
-.stock-critico {
-    background: var(--bg-mid);
-    color: var(--text-light);
-    animation: pulse 1.5s infinite;
-}
-
-.stock-peligro {
-    background: #fff3cd;
-    color: #856404;
-    border: 2px solid #ffc107;
-    animation: pulse 1s infinite;
-}
-
 @keyframes pulse {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.7; }
@@ -567,6 +571,26 @@ header {
 
 .btn-icon:hover {
     background: rgba(88, 129, 87, 0.1);
+}
+
+.btn-icon-edit {
+    background: rgba(255, 255, 255, 0.95);
+    color: var(--text-dark);
+    border: 1px solid rgba(43, 43, 43, 0.12);
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-icon-edit:hover {
+    background: rgba(88, 129, 87, 0.12);
+    border-color: rgba(88, 129, 87, 0.25);
 }
 
 .btn-remove {

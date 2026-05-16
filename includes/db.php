@@ -19,6 +19,23 @@ if ($result && $result->num_rows === 0) {
     $conn->query("ALTER TABLE insumos ADD COLUMN tipo_insumo VARCHAR(100) NOT NULL DEFAULT '' AFTER nombre");
 }
 
+// Asegura que exista el campo de última alerta crítica para evitar envíos de spam.
+$result = $conn->query("SHOW COLUMNS FROM insumos LIKE 'ultimo_alerta_critica'");
+if ($result && $result->num_rows === 0) {
+    $conn->query("ALTER TABLE insumos ADD COLUMN ultimo_alerta_critica TIMESTAMP NULL AFTER dias_restantes");
+}
+
+// Asegura que la tabla de alertas exista.
+$conn->query("CREATE TABLE IF NOT EXISTS alertas (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    insumo_id INT NULL,
+    tipo ENUM('stock_bajo', 'stock_critico', 'vencimiento') NOT NULL,
+    mensaje TEXT NOT NULL,
+    leida BOOLEAN DEFAULT FALSE,
+    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (insumo_id) REFERENCES insumos(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
 // Asegura que las tablas de lotes y consumos existan.
 $conn->query("CREATE TABLE IF NOT EXISTS lotes (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -29,6 +46,16 @@ $conn->query("CREATE TABLE IF NOT EXISTS lotes (
     observaciones TEXT,
     activo BOOLEAN DEFAULT TRUE,
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+// Asegura que exista la tabla lote_insumos para asociar lotes con insumos.
+$conn->query("CREATE TABLE IF NOT EXISTS lote_insumos (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    lote_id INT NOT NULL,
+    insumo_id INT NOT NULL,
+    cantidad_requerida DECIMAL(10,2) NOT NULL,
+    FOREIGN KEY (lote_id) REFERENCES lotes(id) ON DELETE CASCADE,
+    FOREIGN KEY (insumo_id) REFERENCES insumos(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
 try {
