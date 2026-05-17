@@ -94,6 +94,14 @@ header {
     font-weight: 600;
     padding: 6px 10px;
     border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.main-nav a .nav-icon {
+    width: 18px;
+    height: 18px;
 }
 
 .main-nav a:hover,
@@ -511,7 +519,9 @@ header {
     font-size: 16px;
     font-weight: 600;
     transition: all 0.3s;
-   
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .btn-primary {

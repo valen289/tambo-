@@ -78,7 +78,7 @@ while ($insumo = $insumos->fetch_assoc()) {
             </div>
             <div class="card-body">
                 <p>Ve todas las actualizaciones y observaciones en un apartado separado.</p>
-                <a href="actualizaciones.php" class="btn btn-primary">Ir a Últimas Actualizaciones</a>
+                <a href="actualizaciones.php" class="btn btn-primary"><i class="fa-solid fa-list-ul"></i> Ir a Últimas Actualizaciones</a>
             </div>
         </div>
 
@@ -106,7 +106,7 @@ while ($insumo = $insumos->fetch_assoc()) {
         <div class="section-header">
             <h2>Silos</h2>
             <?php if (esUsuario() || esAdmin()): ?>
-                <button class="btn btn-primary" onclick="abrirModalNuevoInsumo()">+ Agregar Silo</button>
+                <button class="btn btn-primary" onclick="abrirModalNuevoInsumo()"><i class="fa-solid fa-plus"></i> Agregar Silo</button>
             <?php endif; ?>
         </div>
         <div class="grid-insumos">
@@ -120,7 +120,7 @@ while ($insumo = $insumos->fetch_assoc()) {
                         <small>Capacidad: <?php echo number_format($insumo['capacidad_maxima'] ?? 0, 0, ',', '.'); ?> <?php echo htmlspecialchars($insumo['unidad'] ?? ''); ?></small>
                     </div>
                     <?php if (esUsuario() || esAdmin()): ?>
-                        <button class="btn-icon-edit" onclick="editarInsumo(<?php echo $insumo['id']; ?>)">Editar</button>
+                        <button class="btn-icon-edit" onclick="editarInsumo(<?php echo $insumo['id']; ?>)"><i class="fa-solid fa-pen"></i> Editar</button>
                     <?php endif; ?>
                 </div>
                 
@@ -179,9 +179,9 @@ while ($insumo = $insumos->fetch_assoc()) {
                 <input type="hidden" id="editarMinimo" name="stock_minimo" value="0">
                 <input type="hidden" id="editarConsumo" name="consumo_promedio_diario" value="0">
                 <div class="modal-actions">
-                    <button type="button" class="btn btn-secondary" onclick="cerrarEditarModal()">Cancelar</button>
-                    <button type="button" id="btnEliminarInsumo" class="btn btn-danger" onclick="confirmarEliminar()">Eliminar</button>
-                    <button type="submit" id="btnGuardarInsumo" class="btn btn-primary">Guardar</button>
+                    <button type="button" class="btn btn-secondary" onclick="cerrarEditarModal()"><i class="fa-solid fa-xmark"></i> Cancelar</button>
+                    <button type="button" id="btnEliminarInsumo" class="btn btn-danger" onclick="confirmarEliminar()"><i class="fa-solid fa-trash"></i> Eliminar</button>
+                    <button type="submit" id="btnGuardarInsumo" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Guardar</button>
                 </div>
             </form>
         </div>

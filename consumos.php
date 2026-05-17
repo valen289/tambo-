@@ -247,9 +247,9 @@ while ($row = $consumos->fetch_assoc()) {
     <div class="container">
         <div class="consumos-layout">
             <aside class="consumos-sidebar">
-                <h3>Consumos</h3>
-                <a href="?vista=registrar" class="sidebar-btn <?php echo $vista === 'registrar' ? 'active' : ''; ?>">Registrar Consumo</a>
-                <a href="?vista=historial" class="sidebar-btn <?php echo $vista === 'historial' ? 'active' : ''; ?>">Historial de Consumo</a>
+                <h3><i class="fa-solid fa-bars"></i> Consumos</h3>
+                <a href="?vista=registrar" class="sidebar-btn <?php echo $vista === 'registrar' ? 'active' : ''; ?>"><i class="fa-solid fa-plus-circle"></i> Registrar Consumo</a>
+                <a href="?vista=historial" class="sidebar-btn <?php echo $vista === 'historial' ? 'active' : ''; ?>"><i class="fa-solid fa-clock-rotate-left"></i> Historial de Consumo</a>
             </aside>
 
             <div class="consumos-main">
@@ -294,17 +294,17 @@ while ($row = $consumos->fetch_assoc()) {
                                                 <?php endforeach; ?>
                                             </select>
                                             <input type="number" step="0.01" min="0" name="cantidad[]" placeholder="Cantidad" style="width:160px;" required>
-                                            <button type="button" class="btn btn-secondary" onclick="eliminarFila(this)" style="height:42px;">Eliminar</button>
+                                            <button type="button" class="btn btn-secondary" onclick="eliminarFila(this)" style="height:42px;"><i class="fa-solid fa-trash"></i> Eliminar</button>
                                         </div>
                                     </div>
-                                    <button type="button" class="btn btn-primary" onclick="agregarFilaSilo()">Agregar silo</button>
+                                    <button type="button" class="btn btn-primary" onclick="agregarFilaSilo()"><i class="fa-solid fa-plus"></i> Agregar silo</button>
                                 </div>
                             <?php else: ?>
                                 <div class="form-group form-full">
                                     <div class="planilla-card" id="planillaOperario" style="border: 2px solid #4caf50; background: #f1f8e9;">
                                         <div class="planilla-top">
                                             <div>
-                                                <h3 style="color: #2e7d32;">Planilla de armado - Lote seleccionado</h3>
+                                                <h3 style="color: #2e7d32;"><i class="fa-solid fa-clipboard-list"></i> Planilla de armado - Lote seleccionado</h3>
                                                 <p class="planilla-meta"><strong>Lote:</strong> <span id="loteNombre">-</span></p>
                                                 <p class="planilla-meta"><strong>Tipo:</strong> <span id="loteTipo">-</span> | <strong>Animales:</strong> <span id="loteAnimales">-</span></p>
                                             </div>
@@ -347,13 +347,13 @@ while ($row = $consumos->fetch_assoc()) {
                             </div>
                             <?php if ($isUsuario): ?>
                                 <div class="form-group form-full">
-                                    <button type="submit" class="btn btn-primary">Registrar Consumo</button>
+                                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Registrar Consumo</button>
                                 </div>
                             <?php elseif ($isOperario): ?>
                                 <div class="form-group form-full" id="operarioConfirmBtn" style="display:none;">
-                                    <button type="submit" class="btn btn-primary" style="background: #4caf50; font-size: 1.1em; padding: 12px 24px;">
-                                        Confirmar que retire el material
-                                    </button>
+                                <button type="submit" class="btn btn-primary" style="background: #4caf50; font-size: 1.1em; padding: 12px 24px;">
+                                    <i class="fa-solid fa-check"></i> Confirmar que retire el material
+                                </button>
                                 </div>
                             <?php endif; ?>
                         </form>

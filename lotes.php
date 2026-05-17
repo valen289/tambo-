@@ -217,12 +217,12 @@ foreach ($lotes_data as $lote) {
                                     <?php endforeach; ?>
                                 </select>
                                 <input type="number" step="0.01" min="0" name="cantidad_silo[]" placeholder="Cantidad" style="width:160px;" required oninput="calcularConsumo()">
-                                <button type="button" class="btn btn-secondary" onclick="agregarFilaSilo('silosNuevoContainer')" style="height:42px;">Agregar silo</button>
+                                <button type="button" class="btn btn-secondary" onclick="agregarFilaSilo('silosNuevoContainer')" style="height:42px;"><i class="fa-solid fa-plus"></i> Agregar silo</button>
                             </div>
                         </div>
                     </div>
                     <div class="form-group form-full">
-                        <button type="submit" class="btn btn-primary">Guardar Lote</button>
+                        <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Guardar Lote</button>
                     </div>
                 </form>
             </div>
@@ -251,11 +251,11 @@ foreach ($lotes_data as $lote) {
                                     <?php endif; ?>
                                 </div>
                                 <div class="btn-group">
-                                    <button type="button" class="btn btn-secondary btn-small" onclick="toggleEditarSilos(<?php echo intval($planilla['lote']['id']); ?>)">Editar silos</button>
+                                    <button type="button" class="btn btn-secondary btn-small" onclick="toggleEditarSilos(<?php echo intval($planilla['lote']['id']); ?>)"><i class="fa-solid fa-pen"></i> Editar silos</button>
                                     <form method="post" style="display:inline-block;">
                                         <input type="hidden" name="accion" value="eliminar_lote">
                                         <input type="hidden" name="lote_id" value="<?php echo intval($planilla['lote']['id']); ?>">
-                                        <button type="submit" class="btn btn-danger btn-small" onclick="return confirm('¿Eliminar este lote?')">Eliminar</button>
+                                        <button type="submit" class="btn btn-danger btn-small" onclick="return confirm('¿Eliminar este lote?')"><i class="fa-solid fa-trash"></i> Eliminar</button>
                                     </form>
                                 </div>
                             </div>
@@ -299,14 +299,14 @@ foreach ($lotes_data as $lote) {
                                                     <?php endforeach; ?>
                                                 </select>
                                                 <input type="number" step="0.01" min="0" name="cantidad_silo[]" value="<?php echo htmlspecialchars($item['cantidad_requerida']); ?>" style="width:160px;" required>
-                                                <button type="button" class="btn btn-secondary" onclick="eliminarFilaSilo(this)" style="height:42px;">Eliminar</button>
+                                                <button type="button" class="btn btn-secondary" onclick="eliminarFilaSilo(this)" style="height:42px;"><i class="fa-solid fa-trash"></i> Eliminar</button>
                                             </div>
                                         <?php endforeach; ?>
                                     </div>
-                                    <button type="button" class="btn btn-secondary" onclick="agregarFilaSiloEdit(<?php echo intval($planilla['lote']['id']); ?>)" style="margin-bottom: 0.75rem;">+ Agregar silo</button>
+                                    <button type="button" class="btn btn-secondary" onclick="agregarFilaSiloEdit(<?php echo intval($planilla['lote']['id']); ?>)" style="margin-bottom: 0.75rem;"><i class="fa-solid fa-plus"></i> Agregar silo</button>
                                     <div class="silos-edit-actions">
-                                        <button type="submit" class="btn btn-primary">Guardar cambios</button>
-                                        <button type="button" class="btn btn-cancel" onclick="toggleEditarSilos(<?php echo intval($planilla['lote']['id']); ?>)">Cancelar</button>
+                                        <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Guardar cambios</button>
+                                        <button type="button" class="btn btn-cancel" onclick="toggleEditarSilos(<?php echo intval($planilla['lote']['id']); ?>)"><i class="fa-solid fa-xmark"></i> Cancelar</button>
                                     </div>
                                 </form>
                             </div>

@@ -1,12 +1,13 @@
 <?php
-require_once '../includes/db.php';
-require_once '../includes/auth.php';
-require_once '../includes/functions.php';
+require_once dirname(__DIR__) . '/includes/config.php';
+require_once INCLUDES_PATH . '/db.php';
+require_once INCLUDES_PATH . '/auth.php';
+require_once INCLUDES_PATH . '/functions.php';
 
 verificarSesion();
 
 if (!esAdmin()) {
-    header("Location: ../dashboard.php");
+    header("Location: ../silos.php");
     exit();
 }
 
@@ -66,9 +67,8 @@ $insumos = $conn->query("SELECT * FROM insumos WHERE activo = TRUE ORDER BY nomb
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Configuración - Gestión de Tambo Pro</title>
     <link rel="stylesheet" href="../assets/css/style.css">
-</head>
-<body>
-    <?php include '../includes/header.php'; ?>
+
+    <?php include INCLUDES_PATH . '/header.php'; ?>
     
     <div class="container">
         <h1>⚙️ Configuración del Sistema</h1>

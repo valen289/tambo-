@@ -1,6 +1,7 @@
 <?php
-require_once '../includes/db.php';
-require_once '../includes/auth.php';
+require_once dirname(__DIR__) . '/includes/config.php';
+require_once INCLUDES_PATH . '/db.php';
+require_once INCLUDES_PATH . '/auth.php';
 verificarSesion();
 
 header('Content-Type: application/json');
@@ -8,7 +9,7 @@ header('Content-Type: application/json');
 $lote_id = intval($_GET['lote_id'] ?? 0);
 
 if ($lote_id <= 0) {
-    echo json_encode(['error' => 'Lote no válido']);
+    echo json_encode(['error' => 'Lote no valido']);
     exit;
 }
 

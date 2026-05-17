@@ -3,16 +3,17 @@
 @ini_set('display_startup_errors', 0);
 error_reporting(E_ERROR | E_PARSE);
 
-require_once '../includes/db.php';
-require_once '../includes/auth.php';
-require_once '../includes/functions.php';
+require_once dirname(__DIR__) . '/includes/config.php';
+require_once INCLUDES_PATH . '/db.php';
+require_once INCLUDES_PATH . '/auth.php';
+require_once INCLUDES_PATH . '/functions.php';
 
 header('Content-Type: application/json');
 
 verificarSesion();
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    echo json_encode(['success' => false, 'message' => 'Método no permitido']);
+    echo json_encode(['success' => false, 'message' => 'Metodo no permitido']);
     exit();
 }
 
@@ -20,7 +21,6 @@ $accion = $_POST['accion'] ?? '';
 
 switch ($accion) {
     case 'agregar_stock':
-        // Agregar stock (compra/reposición)
         $insumo_id = intval($_POST['insumo_id']);
         $cantidad = floatval($_POST['cantidad']);
         $observaciones = $_POST['observaciones'] ?? '';
@@ -30,7 +30,6 @@ switch ($accion) {
             exit();
         }
         
-        // Verificar insumo
         $stmt = $conn->prepare("SELECT stock_actual, capacidad_maxima FROM insumos WHERE id = ?");
         $stmt->bind_param("i", $insumo_id);
         $stmt->execute();
@@ -43,11 +42,10 @@ switch ($accion) {
         
         $nuevoStock = $insumo['stock_actual'] + $cantidad;
         
-        // Verificar capacidad máxima
         if ($nuevoStock > $insumo['capacidad_maxima']) {
             echo json_encode([
                 'success' => false, 
-                'message' => 'El stock excede la capacidad máxima (' . $insumo['capacidad_maxima'] . ')'
+                'message' => 'El stock excede la capacidad maxima (' . $insumo['capacidad_maxima'] . ')'
             ]);
             exit();
         }
@@ -55,12 +53,10 @@ switch ($accion) {
         $conn->begin_transaction();
         
         try {
-            // Actualizar stock
             $stmt = $conn->prepare("UPDATE insumos SET stock_actual = ? WHERE id = ?");
             $stmt->bind_param("di", $nuevoStock, $insumo_id);
             $stmt->execute();
             
-            // Registrar en historial (cantidad negativa indica ingreso)
             $cantidad_negativa = -$cantidad;
             $stmt = $conn->prepare("
                 INSERT INTO consumo_diario (insumo_id, usuario_id, cantidad, fecha, hora, observaciones, tipo_movimiento)
@@ -86,7 +82,6 @@ switch ($accion) {
         break;
         
     case 'ajustar_stock':
-        // Ajuste manual de stock (inventario)
         $insumo_id = intval($_POST['insumo_id']);
         $nuevo_stock = floatval($_POST['nuevo_stock']);
         $motivo = $_POST['motivo'] ?? 'Ajuste de inventario';
@@ -96,7 +91,6 @@ switch ($accion) {
             exit();
         }
         
-        // Verificar insumo
         $stmt = $conn->prepare("SELECT stock_actual FROM insumos WHERE id = ?");
         $stmt->bind_param("i", $insumo_id);
         $stmt->execute();
@@ -112,12 +106,10 @@ switch ($accion) {
         $conn->begin_transaction();
         
         try {
-            // Actualizar stock
             $stmt = $conn->prepare("UPDATE insumos SET stock_actual = ? WHERE id = ?");
             $stmt->bind_param("di", $nuevo_stock, $insumo_id);
             $stmt->execute();
             
-            // Registrar ajuste
             if ($diferencia != 0) {
                 $tipo = $diferencia > 0 ? 'ajuste_positivo' : 'ajuste_negativo';
                 $diferencia_abs = abs($diferencia);
@@ -147,7 +139,6 @@ switch ($accion) {
         break;
         
     case 'obtener_insumo':
-        // Obtener datos de un insumo
         $insumo_id = intval($_POST['insumo_id']);
         
         $stmt = $conn->prepare("SELECT * FROM insumos WHERE id = ?");
@@ -173,17 +164,16 @@ switch ($accion) {
         $consumo_promedio_diario = floatval($_POST['consumo_promedio_diario'] ?? 0);
 
         if (empty($nombre) || empty($unidad) || empty($tipo_insumo) || $capacidad_maxima <= 0 || $stock_minimo < 0 || $stock_actual < 0) {
-            echo json_encode(['success' => false, 'message' => 'Datos inválidos para guardar el insumo']);
+            echo json_encode(['success' => false, 'message' => 'Datos invalidos para guardar el insumo']);
             exit();
         }
 
         if ($stock_actual > $capacidad_maxima) {
-            echo json_encode(['success' => false, 'message' => 'El stock actual no puede superar la capacidad máxima']);
+            echo json_encode(['success' => false, 'message' => 'El stock actual no puede superar la capacidad maxima']);
             exit();
         }
 
         if ($insumo_id <= 0) {
-            // Crear nuevo insumo
             $stmt = $conn->prepare("INSERT INTO insumos (nombre, tipo_insumo, unidad, capacidad_maxima, stock_actual, stock_minimo, consumo_promedio_diario, activo) VALUES (?, ?, ?, ?, ?, ?, ?, TRUE)");
             $stmt->bind_param("ssssddd", $nombre, $tipo_insumo, $unidad, $capacidad_maxima, $stock_actual, $stock_minimo, $consumo_promedio_diario);
             
@@ -193,7 +183,6 @@ switch ($accion) {
                 echo json_encode(['success' => false, 'message' => 'No se pudo crear el insumo']);
             }
         } else {
-            // Actualizar insumo existente
             $stmt = $conn->prepare("UPDATE insumos SET nombre = ?, tipo_insumo = ?, unidad = ?, capacidad_maxima = ?, stock_actual = ?, stock_minimo = ?, consumo_promedio_diario = ? WHERE id = ?");
             $stmt->bind_param("sssddddi", $nombre, $tipo_insumo, $unidad, $capacidad_maxima, $stock_actual, $stock_minimo, $consumo_promedio_diario, $insumo_id);
             
@@ -209,11 +198,10 @@ switch ($accion) {
         $insumo_id = intval($_POST['insumo_id']);
         
         if ($insumo_id <= 0) {
-            echo json_encode(['success' => false, 'message' => 'ID de insumo inválido']);
+            echo json_encode(['success' => false, 'message' => 'ID de insumo invalido']);
             exit();
         }
         
-        // Verificar que el insumo existe
         $stmt = $conn->prepare("SELECT id FROM insumos WHERE id = ?");
         $stmt->bind_param("i", $insumo_id);
         $stmt->execute();
@@ -222,7 +210,6 @@ switch ($accion) {
             exit();
         }
         
-        // En lugar de eliminar, marcar como inactivo
         $stmt = $conn->prepare("UPDATE insumos SET activo = FALSE WHERE id = ?");
         $stmt->bind_param("i", $insumo_id);
         
@@ -234,7 +221,7 @@ switch ($accion) {
         break;
         
     default:
-        echo json_encode(['success' => false, 'message' => 'Acción no válida']);
+        echo json_encode(['success' => false, 'message' => 'Accion no valida']);
         break;
 }
 ?>

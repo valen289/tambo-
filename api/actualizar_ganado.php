@@ -3,14 +3,15 @@
 @ini_set('display_startup_errors', 0);
 error_reporting(E_ERROR | E_PARSE);
 
-require_once '../includes/db.php';
-require_once '../includes/auth.php';
+require_once dirname(__DIR__) . '/includes/config.php';
+require_once INCLUDES_PATH . '/db.php';
+require_once INCLUDES_PATH . '/auth.php';
 
 header('Content-Type: application/json');
 verificarSesion();
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    echo json_encode(['success' => false, 'message' => 'Método no permitido']);
+    echo json_encode(['success' => false, 'message' => 'Metodo no permitido']);
     exit();
 }
 
@@ -18,7 +19,7 @@ $input = json_decode(file_get_contents('php://input'), true);
 $cambio = isset($input['cambio']) ? intval($input['cambio']) : 0;
 
 if ($cambio === 0) {
-    echo json_encode(['success' => false, 'message' => 'No se recibió un cambio válido']);
+    echo json_encode(['success' => false, 'message' => 'No se recibio un cambio valido']);
     exit();
 }
 

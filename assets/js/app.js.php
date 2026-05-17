@@ -4,7 +4,7 @@ header('Content-Type: application/javascript');
 $usuarioId = isset($_SESSION['usuario_id']) ? addslashes($_SESSION['usuario_id']) : '';
 ?>
 
-const apiBaseUrl = `${window.location.origin}/api`;
+const apiBaseUrl = 'api';
 
 function showToast(message, type = 'success') {
     const container = document.getElementById('toastContainer');
@@ -36,18 +36,18 @@ async function requestApi(endpoint, init = {}) {
     const contentType = response.headers.get('Content-Type') || '';
 
     if (response.redirected || contentType.includes('text/html')) {
-        throw new Error('Se ha redirigido a una página HTML. Comprueba que la sesión esté activa y que la API esté en el mismo origen.');
+        throw new Error('Se ha redirigido a una pagina HTML. Comprueba que la sesion este activa y que la API este en el mismo origen.');
     }
 
     let data;
     try {
         data = text ? JSON.parse(text) : {};
     } catch (error) {
-        throw new Error(`Respuesta no válida del servidor (${response.status}): ${text}`);
+        throw new Error(`Respuesta no valida del servidor (${response.status}): ${text}`);
     }
 
     if (!response.ok) {
-        const message = data.message || response.statusText || 'Error en la petición';
+        const message = data.message || response.statusText || 'Error en la peticion';
         throw new Error(`HTTP ${response.status}: ${message}`);
     }
 
@@ -63,7 +63,7 @@ function confirmarEliminar() {
     const insumoId = document.getElementById('editarInsumoId').value;
     const nombreInsumo = document.getElementById('editarNombre').value;
     
-    if (confirm(`¿Estás seguro de que deseas eliminar el insumo "${nombreInsumo}"? Esta acción no se puede deshacer.`)) {
+    if (confirm(`¿Estas seguro de que deseas eliminar el insumo "${nombreInsumo}"? Esta accion no se puede deshacer.`)) {
         eliminarInsumo(insumoId);
     }
 }
@@ -93,7 +93,6 @@ function eliminarInsumo(insumoId) {
     });
 }
 
-// Ajustar Ganado
 function ajustarGanado(cambio) {
     requestApi('actualizar_ganado.php', {
         method: 'POST',
@@ -118,7 +117,6 @@ function abrirModalNuevoInsumo() {
     const modal = document.getElementById('modalEditarInsumo');
     const form = document.getElementById('formEditarInsumo');
     
-    // Limpiar el formulario
     form.reset();
     document.getElementById('editarInsumoId').value = '';
     document.getElementById('modalEditarTitulo').textContent = 'Nuevo Insumo';
@@ -197,7 +195,6 @@ if (formEditarInsumo) {
     });
 }
 
-// Formulario de Insumo
 const formInsumo = document.getElementById('formInsumo');
 if (formInsumo) {
     formInsumo.addEventListener('submit', function(e) {
@@ -222,7 +219,6 @@ if (formInsumo) {
     });
 }
 
-// Cerrar modal al hacer click fuera
 window.onclick = function(event) {
     const modalEditar = document.getElementById('modalEditarInsumo');
 

@@ -3,7 +3,8 @@
 @ini_set('display_startup_errors', 0);
 error_reporting(E_ERROR | E_PARSE);
 
-require_once '../includes/db.php';
+require_once dirname(__DIR__) . '/includes/config.php';
+require_once INCLUDES_PATH . '/db.php';
 
 header('Content-Type: application/json');
 

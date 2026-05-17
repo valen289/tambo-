@@ -4,14 +4,15 @@
 error_reporting(E_ERROR | E_PARSE);
 
 session_start();
-require_once '../includes/db.php';
-require_once '../includes/functions.php';
+require_once dirname(__DIR__) . '/includes/config.php';
+require_once INCLUDES_PATH . '/db.php';
+require_once INCLUDES_PATH . '/functions.php';
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
 header('Content-Type: application/json');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    echo json_encode(['success' => false, 'message' => 'Método no permitido']);
+    echo json_encode(['success' => false, 'message' => 'Metodo no permitido']);
     exit();
 }
 
@@ -81,7 +82,6 @@ try {
     
     $conn->commit();
 
-    // Notificar si el silo en kilos está por quedarse sin stock
     notificarStockBajo($conn, $insumo_id, $usuario_id);
 
     echo json_encode(['success' => true]);
