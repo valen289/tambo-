@@ -44,36 +44,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SiCoDiEt - Login</title>
     <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body class="login-page">
     <div class="login-container">
         <div class="login-box">
             <div class="logo">
-                <span class="logo-icon"></span>
+               
+                
                 <h1>Bienvenido</h1>
+                <p>Ingresá tus credenciales para acceder al sistema</p>
             </div>
             
             <?php if ($error): ?>
-                <div class="alert alert-error"><?php echo $error; ?></div>
+                <div class="alert alert-error">
+                    <i class="fa-solid fa-circle-exclamation"></i> <?php echo $error; ?>
+                </div>
             <?php endif; ?>
             
             <form method="POST" class="login-form">
                 <div class="form-group">
-                    <label for="cedula">Cédula de Identidad</label>
+                    <label for="cedula"><i class="fa-solid fa-id-card"></i> Cédula de Identidad</label>
                     <input type="text" id="cedula" name="cedula" required 
-                           placeholder="Ej: 12345678" maxlength="8">
+                           placeholder="Ej: 12345678" maxlength="8"
+                           value="<?php echo htmlspecialchars($_POST['cedula'] ?? ''); ?>">
                 </div>
                 
                 <div class="form-group">
-                    <label for="password">Contraseña</label>
+                    <label for="password"><i class="fa-solid fa-lock"></i> Contraseña</label>
                     <input type="password" id="password" name="password" required 
                            placeholder="Ingrese su contraseña">
                 </div>
                 
-                <button type="submit" class="btn btn-primary btn-block">Ingresar</button>
-                <p style="text-align:center; margin-top: 20px; color: #7f8c8d; font-size: 14px;">
-    ¿No tenés cuenta? <a href="register.php" style="color: #9a7f65; font-weight: 600;">Registrarse</a>
-</p>
+                <button type="submit" class="btn btn-primary btn-block">
+                    <i class="fa-solid fa-right-to-bracket"></i> Ingresar
+                </button>
+                
+                <p style="text-align:center; margin-top: 15px; color: #7f8c8d; font-size: 14px;">
+                    <a href="recuperar.php" style="color: #588157; font-weight: 600; text-decoration: none;">
+                        <i class="fa-solid fa-key"></i> ¿Olvidaste tu contraseña?
+                    </a>
+                </p>
+                
+                <p style="text-align:center; margin-top: 10px; color: #7f8c8d; font-size: 14px;">
+                    ¿No tenés cuenta? <a href="register.php" style="color: #9a7f65; font-weight: 600; text-decoration: none;">
+                        <i class="fa-solid fa-user-plus"></i> Registrarse
+                    </a>
+                </p>
             </form>
         </div>
     </div>

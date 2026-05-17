@@ -60,6 +60,19 @@ body {
     display: none;
 }
 
+.logo-icon-large {
+    width: 64px;
+    height: 64px;
+    margin-bottom: 15px;
+    color: var(--accent);
+}
+
+.logo p {
+    color: var(--muted);
+    font-size: 13px;
+    margin-top: 5px;
+}
+
 .logo h2 {
     color: var(--text-dark);
     font-size: 24px;
@@ -100,8 +113,8 @@ header {
 }
 
 .main-nav a .nav-icon {
-    width: 18px;
-    height: 18px;
+    width: 20px;
+    height: 20px;
 }
 
 .main-nav a:hover,
@@ -875,9 +888,19 @@ header {
 }
 
 .alert-success {
-    background: #f2ead9;
-    color: var(--text-dark);
-    border: 1px solid #d3c0a7;
+    background: #e8f5e9;
+    color: #2e7d32;
+    border: 1px solid #a5d6a7;
+}
+
+.alert-info {
+    background: #e3f2fd;
+    color: #1565c0;
+    border: 1px solid #90caf9;
+}
+
+.alert i {
+    margin-right: 6px;
 }
 
 /* Actualizaciones - Resumen de Consumo */

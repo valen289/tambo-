@@ -91,14 +91,8 @@ while ($insumo = $insumos->fetch_assoc()) {
                 <p><strong>Email:</strong> <?php echo htmlspecialchars($_SESSION['email'] ?? 'No registrado'); ?></p>
                 <p><strong>Teléfono:</strong> <?php echo htmlspecialchars($_SESSION['telefono'] ?? 'No registrado'); ?></p>
                 <p><strong>Rol:</strong> <?php echo ucfirst($_SESSION['rol']); ?></p>
-                <p><strong>Último acceso:</strong> <?php echo htmlspecialchars($_SESSION['ultimo_acceso'] ?? 'Nunca'); ?></p>
-                <?php if (esOperario()): ?>
-                    <p>Esta es tu sección de operario. Aquí puedes registrar consumos y ver el stock disponible.</p>
-                <?php elseif (esUsuario()): ?>
-                    <p>Esta es tu sección de usuario administrativo. Aquí puedes gestionar y editar silos.</p>
-                <?php else: ?>
-                    <p>Esta es tu sección administrativa. Desde aquí puedes gestionar silos, usuarios y ajustes.</p>
-                <?php endif; ?>
+                
+              
             </div>
         </div>
 
